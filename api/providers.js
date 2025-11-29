@@ -288,12 +288,12 @@ export class AnthropicProvider extends APIProvider {
             const usage = data.usage;
             const stopReason = data.stop_reason;
 
-            // Check for empty response or safety filter
-            if (!completion || completion.trim() === '') {
-                let errorMsg = 'Empty response from model';
-                let suggestion = 'The model returned no content.';
+            // Check for empty or very short response (likely safety filter or refusal)
+            if (!completion || completion.trim() === '' || (completion.trim().length < 10 && usage.output_tokens <= 5)) {
+                let errorMsg = 'Empty or minimal response from model';
+                let suggestion = 'The model returned no meaningful content.';
 
-                if (stopReason === 'end_turn' && usage.output_tokens === 0) {
+                if (stopReason === 'end_turn') {
                     errorMsg = 'Model returned empty response';
                     suggestion = 'This may be due to safety filters or the model interpreting the prompt as complete. Try rephrasing your prompt.';
                 } else if (stopReason === 'max_tokens') {
