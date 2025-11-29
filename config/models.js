@@ -1,11 +1,11 @@
 // Dynamic model configuration system
 // Models are now discovered from APIs, this file provides fallback pricing and configuration
 
-// API endpoint configurations
+// API endpoint configurations - using backend proxy to avoid CORS issues
 export const API_ENDPOINTS = {
-  openai: 'https://api.openai.com/v1',
-  anthropic: 'https://api.anthropic.com/v1',
-  google: 'https://generativelanguage.googleapis.com/v1beta'
+  openai: '/api/proxy/openai',
+  anthropic: '/api/proxy/anthropic',
+  google: '/api/proxy/google'
 };
 
 // Pricing fallbacks for known models (per 1K tokens)
