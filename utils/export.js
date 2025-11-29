@@ -19,11 +19,19 @@ export class Exporter {
                     contextWindow: response.contextWindow,
                     timestamp: response.timestamp
                 },
-                error: response.error || null
+                error: response.error || null,
+                // Include warning information for empty responses
+                warning: response.warning || null,
+                warningSuggestion: response.warningSuggestion || null,
+                warningType: response.warningType || null,
+                // Include diagnostic information
+                stopReason: response.stopReason || null,
+                finishReason: response.finishReason || null
             })),
             summary: {
                 totalModels: data.responses.length,
-                successfulResponses: data.responses.filter(r => !r.error).length,
+                successfulResponses: data.responses.filter(r => !r.error && !r.warning).length,
+                responsesWithWarnings: data.responses.filter(r => r.warning).length,
                 failedResponses: data.responses.filter(r => r.error).length,
                 totalCost: data.responses.reduce((sum, r) => sum + (r.estimatedCost || 0), 0),
                 averageLatency: this.calculateAverageLatency(data.responses)
