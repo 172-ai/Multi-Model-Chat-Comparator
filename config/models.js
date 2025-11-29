@@ -1,137 +1,120 @@
-// Model configurations and pricing information
-export const MODEL_CONFIGS = {
-  // OpenAI Models
-  'gpt-4-turbo': {
-    provider: 'openai',
-    name: 'GPT-4 Turbo',
-    displayName: 'GPT-4 Turbo',
-    contextWindow: 128000,
-    pricing: {
-      input: 0.01 / 1000,  // $0.01 per 1K input tokens
-      output: 0.03 / 1000  // $0.03 per 1K output tokens
-    },
-    defaultParams: {
-      temperature: 0.7,
-      max_tokens: 2048
-    }
-  },
-  'gpt-4': {
-    provider: 'openai',
-    name: 'GPT-4',
-    displayName: 'GPT-4',
-    contextWindow: 8192,
-    pricing: {
-      input: 0.03 / 1000,
-      output: 0.06 / 1000
-    },
-    defaultParams: {
-      temperature: 0.7,
-      max_tokens: 2048
-    }
-  },
-  'gpt-3.5-turbo': {
-    provider: 'openai',
-    name: 'GPT-3.5 Turbo',
-    displayName: 'GPT-3.5 Turbo',
-    contextWindow: 16385,
-    pricing: {
-      input: 0.0005 / 1000,
-      output: 0.0015 / 1000
-    },
-    defaultParams: {
-      temperature: 0.7,
-      max_tokens: 2048
-    }
-  },
-
-  // Anthropic Models
-  'claude-3-5-sonnet-20241022': {
-    provider: 'anthropic',
-    name: 'claude-3-5-sonnet-20241022',
-    displayName: 'Claude 3.5 Sonnet',
-    contextWindow: 200000,
-    pricing: {
-      input: 0.003 / 1000,
-      output: 0.015 / 1000
-    },
-    defaultParams: {
-      temperature: 0.7,
-      max_tokens: 2048
-    }
-  },
-  'claude-3-opus-20240229': {
-    provider: 'anthropic',
-    name: 'claude-3-opus-20240229',
-    displayName: 'Claude 3 Opus',
-    contextWindow: 200000,
-    pricing: {
-      input: 0.015 / 1000,
-      output: 0.075 / 1000
-    },
-    defaultParams: {
-      temperature: 0.7,
-      max_tokens: 2048
-    }
-  },
-  'claude-3-haiku-20240307': {
-    provider: 'anthropic',
-    name: 'claude-3-haiku-20240307',
-    displayName: 'Claude 3 Haiku',
-    contextWindow: 200000,
-    pricing: {
-      input: 0.00025 / 1000,
-      output: 0.00125 / 1000
-    },
-    defaultParams: {
-      temperature: 0.7,
-      max_tokens: 2048
-    }
-  },
-
-  // Google Models
-  'gemini-1.5-pro': {
-    provider: 'google',
-    name: 'gemini-1.5-pro',
-    displayName: 'Gemini 1.5 Pro',
-    contextWindow: 2000000,
-    pricing: {
-      input: 0.00125 / 1000,
-      output: 0.005 / 1000
-    },
-    defaultParams: {
-      temperature: 0.7,
-      maxOutputTokens: 2048
-    }
-  },
-  'gemini-1.5-flash': {
-    provider: 'google',
-    name: 'gemini-1.5-flash',
-    displayName: 'Gemini 1.5 Flash',
-    contextWindow: 1000000,
-    pricing: {
-      input: 0.000075 / 1000,
-      output: 0.0003 / 1000
-    },
-    defaultParams: {
-      temperature: 0.7,
-      maxOutputTokens: 2048
-    }
-  }
-};
+// Dynamic model configuration system
+// Models are now discovered from APIs, this file provides fallback pricing and configuration
 
 // API endpoint configurations
 export const API_ENDPOINTS = {
-  openai: 'https://api.openai.com/v1/chat/completions',
-  anthropic: 'https://api.anthropic.com/v1/messages',
-  google: 'https://generativelanguage.googleapis.com/v1beta/models'
+  openai: 'https://api.openai.com/v1',
+  anthropic: 'https://api.anthropic.com/v1',
+  google: 'https://generativelanguage.googleapis.com/v1beta'
 };
 
-// Default enabled models
-export const DEFAULT_MODELS = [
-  'gpt-4-turbo',
-  'gpt-3.5-turbo',
-  'claude-3-5-sonnet-20241022',
-  'claude-3-haiku-20240307',
-  'gemini-1.5-pro',
-  'gemini-1.5-flash'
-];
+// Pricing fallbacks for known models (per 1K tokens)
+// These are used when model pricing isn't available from API
+export const PRICING_FALLBACKS = {
+  // OpenAI
+  'gpt-4-turbo': { input: 0.01, output: 0.03 },
+  'gpt-4-turbo-preview': { input: 0.01, output: 0.03 },
+  'gpt-4-0125-preview': { input: 0.01, output: 0.03 },
+  'gpt-4-1106-preview': { input: 0.01, output: 0.03 },
+  'gpt-4': { input: 0.03, output: 0.06 },
+  'gpt-4-0613': { input: 0.03, output: 0.06 },
+  'gpt-3.5-turbo': { input: 0.0005, output: 0.0015 },
+  'gpt-3.5-turbo-0125': { input: 0.0005, output: 0.0015 },
+  'gpt-3.5-turbo-1106': { input: 0.001, output: 0.002 },
+
+  // Anthropic
+  'claude-3-5-sonnet-20241022': { input: 0.003, output: 0.015 },
+  'claude-3-5-sonnet-20240620': { input: 0.003, output: 0.015 },
+  'claude-3-opus-20240229': { input: 0.015, output: 0.075 },
+  'claude-3-sonnet-20240229': { input: 0.003, output: 0.015 },
+  'claude-3-haiku-20240307': { input: 0.00025, output: 0.00125 },
+
+  // Google
+  'gemini-1.5-pro': { input: 0.00125, output: 0.005 },
+  'gemini-1.5-pro-latest': { input: 0.00125, output: 0.005 },
+  'gemini-1.5-flash': { input: 0.000075, output: 0.0003 },
+  'gemini-1.5-flash-latest': { input: 0.000075, output: 0.0003 },
+  'gemini-pro': { input: 0.0005, output: 0.0015 }
+};
+
+// Get pricing for a model (fallback to generic pricing if not found)
+export function getModelPricing(modelId) {
+  // Check exact match first
+  if (PRICING_FALLBACKS[modelId]) {
+    return PRICING_FALLBACKS[modelId];
+  }
+
+  // Check for partial matches (e.g., "gpt-4-turbo-2024-04-09" matches "gpt-4-turbo")
+  for (const [key, pricing] of Object.entries(PRICING_FALLBACKS)) {
+    if (modelId.startsWith(key)) {
+      return pricing;
+    }
+  }
+
+  // Generic fallback pricing
+  return { input: 0.001, output: 0.002 };
+}
+
+// Streaming configuration
+export const STREAMING_CONFIG = {
+  enabled: true,
+  chunkDelay: 0, // No artificial delay
+  maxRetries: 3,
+  retryDelay: 1000
+};
+
+// Model capability detection
+export function isModelChatCapable(modelId, capabilities = []) {
+  // OpenAI models
+  if (modelId.includes('gpt-4') || modelId.includes('gpt-3.5')) {
+    return true;
+  }
+
+  // Anthropic models (all Claude models support chat)
+  if (modelId.includes('claude')) {
+    return true;
+  }
+
+  // Google models - check for generateContent capability
+  if (capabilities.includes('generateContent')) {
+    return true;
+  }
+
+  // Gemini models
+  if (modelId.includes('gemini')) {
+    return true;
+  }
+
+  return false;
+}
+
+// Extract display name from model ID
+export function getDisplayName(modelId) {
+  // Remove version suffixes and format nicely
+  const name = modelId
+    .replace(/-\d{8}$/, '') // Remove date suffixes like -20240229
+    .replace(/-\d{4}-\d{2}-\d{2}$/, '') // Remove date suffixes like -2024-04-09
+    .replace(/-latest$/, '') // Remove -latest suffix
+    .replace(/-preview$/, '') // Remove -preview suffix
+    .split('-')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+
+  return name;
+}
+
+// Provider detection from model ID
+export function getProviderFromModelId(modelId) {
+  if (modelId.startsWith('gpt-')) return 'openai';
+  if (modelId.startsWith('claude-')) return 'anthropic';
+  if (modelId.startsWith('gemini-')) return 'google';
+  return 'unknown';
+}
+
+// Default parameters for requests
+export const DEFAULT_PARAMS = {
+  temperature: 0.7,
+  max_tokens: 2048,
+  stream: true
+};
+

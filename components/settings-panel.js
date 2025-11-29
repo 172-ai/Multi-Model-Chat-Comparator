@@ -1,6 +1,7 @@
-// Settings Panel Component
-import { MODEL_CONFIGS, DEFAULT_MODELS } from '../config/models.js';
+// Enhanced Settings Panel Component with dynamic model discovery
+import { ProviderFactory } from '../api/providers.js';
 import { Storage } from '../utils/storage.js';
+import { getDisplayName } from '../config/models.js';
 
 export class SettingsPanel {
     constructor() {
@@ -15,10 +16,16 @@ export class SettingsPanel {
 
         this.modelCheckboxesContainer = document.getElementById('modelCheckboxes');
 
+        this.availableModels = {
+            openai: [],
+            anthropic: [],
+            google: []
+        };
+
         this.init();
     }
 
-    init() {
+    async init() {
         // Event listeners
         this.settingsBtn.addEventListener('click', () => this.open());
         this.closeBtn.addEventListener('click', () => this.close());
@@ -38,34 +45,183 @@ export class SettingsPanel {
             }
         });
 
-        // Populate model checkboxes
-        this.populateModelCheckboxes();
+        // API key validation on input
+        this.openaiKeyInput.addEventListener('blur', () => this.validateAndFetchModels('openai'));
+        this.anthropicKeyInput.addEventListener('blur', () => this.validateAndFetchModels('anthropic'));
+        this.googleKeyInput.addEventListener('blur', () => this.validateAndFetchModels('google'));
 
-        // Load saved settings
+        // Load API keys from environment and localStorage
+        await this.loadApiKeysFromEnvironment();
         this.loadSettings();
+
+        // Fetch models for any configured API keys
+        await this.fetchAllModels();
     }
 
-    populateModelCheckboxes() {
-        const fragment = document.createDocumentFragment();
+    async loadApiKeysFromEnvironment() {
+        try {
+            const response = await fetch('/api/env');
+            if (response.ok) {
+                const envKeys = await response.json();
 
-        Object.entries(MODEL_CONFIGS).forEach(([modelId, config]) => {
-            const label = document.createElement('label');
-            label.className = 'checkbox-label';
+                // Set keys from environment if not already in localStorage
+                if (envKeys.openai && !Storage.getApiKey('openai')) {
+                    this.openaiKeyInput.value = envKeys.openai;
+                    Storage.setApiKey('openai', envKeys.openai);
+                }
+                if (envKeys.anthropic && !Storage.getApiKey('anthropic')) {
+                    this.anthropicKeyInput.value = envKeys.anthropic;
+                    Storage.setApiKey('anthropic', envKeys.anthropic);
+                }
+                if (envKeys.google && !Storage.getApiKey('google')) {
+                    this.googleKeyInput.value = envKeys.google;
+                    Storage.setApiKey('google', envKeys.google);
+                }
+            }
+        } catch (error) {
+            console.log('Could not load environment variables (running without backend?)');
+        }
+    }
 
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.value = modelId;
-            checkbox.id = `model-${modelId}`;
-            checkbox.checked = DEFAULT_MODELS.includes(modelId);
+    async validateAndFetchModels(provider) {
+        const input = this[`${provider}KeyInput`];
+        const apiKey = input.value.trim();
 
-            const text = document.createTextNode(config.displayName);
+        if (!apiKey) {
+            this.setValidationState(input, null);
+            return;
+        }
 
-            label.appendChild(checkbox);
-            label.appendChild(text);
-            fragment.appendChild(label);
+        // Show loading state
+        this.setValidationState(input, 'loading');
+
+        try {
+            const models = await ProviderFactory.listModels(provider, apiKey);
+
+            if (models && models.length > 0) {
+                this.availableModels[provider] = models;
+                this.setValidationState(input, 'valid');
+                this.updateModelCheckboxes();
+            } else {
+                this.setValidationState(input, 'invalid');
+            }
+        } catch (error) {
+            console.error(`Error fetching ${provider} models:`, error);
+            this.setValidationState(input, 'invalid');
+        }
+    }
+
+    setValidationState(input, state) {
+        // Remove existing validation classes
+        input.classList.remove('valid', 'invalid', 'loading');
+
+        // Remove existing validation icon
+        const existingIcon = input.parentElement.querySelector('.validation-icon');
+        if (existingIcon) {
+            existingIcon.remove();
+        }
+
+        if (state) {
+            input.classList.add(state);
+
+            // Add validation icon
+            const icon = document.createElement('span');
+            icon.className = 'validation-icon';
+
+            if (state === 'valid') {
+                icon.textContent = '✓';
+                icon.style.color = 'var(--color-success)';
+            } else if (state === 'invalid') {
+                icon.textContent = '✗';
+                icon.style.color = 'var(--color-error)';
+            } else if (state === 'loading') {
+                icon.textContent = '⟳';
+                icon.style.color = 'var(--color-text-secondary)';
+            }
+
+            input.parentElement.appendChild(icon);
+        }
+    }
+
+    async fetchAllModels() {
+        const apiKeys = Storage.getAllApiKeys();
+
+        const promises = [];
+        if (apiKeys.openai) {
+            promises.push(this.validateAndFetchModels('openai'));
+        }
+        if (apiKeys.anthropic) {
+            promises.push(this.validateAndFetchModels('anthropic'));
+        }
+        if (apiKeys.google) {
+            promises.push(this.validateAndFetchModels('google'));
+        }
+
+        await Promise.all(promises);
+    }
+
+    updateModelCheckboxes() {
+        // Clear existing checkboxes
+        this.modelCheckboxesContainer.innerHTML = '';
+
+        // Get currently selected models
+        const selectedModels = Storage.getEnabledModels() || [];
+
+        // Combine all available models
+        const allModels = [
+            ...this.availableModels.openai,
+            ...this.availableModels.anthropic,
+            ...this.availableModels.google
+        ];
+
+        if (allModels.length === 0) {
+            this.modelCheckboxesContainer.innerHTML = '<p class="no-models-message">Enter API keys above to load available models</p>';
+            return;
+        }
+
+        // Group models by provider
+        const modelsByProvider = {
+            openai: this.availableModels.openai,
+            anthropic: this.availableModels.anthropic,
+            google: this.availableModels.google
+        };
+
+        // Create checkboxes grouped by provider
+        Object.entries(modelsByProvider).forEach(([provider, models]) => {
+            if (models.length === 0) return;
+
+            // Provider header
+            const header = document.createElement('h4');
+            header.className = 'provider-header';
+            header.textContent = provider.charAt(0).toUpperCase() + provider.slice(1);
+            this.modelCheckboxesContainer.appendChild(header);
+
+            // Model checkboxes
+            models.forEach(model => {
+                const label = document.createElement('label');
+                label.className = 'checkbox-label';
+                label.title = `Context: ${model.contextWindow.toLocaleString()} tokens`;
+
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.value = model.id;
+                checkbox.id = `model-${model.id}`;
+                checkbox.checked = selectedModels.includes(model.id);
+
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'model-name';
+                nameSpan.textContent = getDisplayName(model.id);
+
+                const contextSpan = document.createElement('span');
+                contextSpan.className = 'model-context';
+                contextSpan.textContent = `${(model.contextWindow / 1000).toFixed(0)}K`;
+
+                label.appendChild(checkbox);
+                label.appendChild(nameSpan);
+                label.appendChild(contextSpan);
+                this.modelCheckboxesContainer.appendChild(label);
+            });
         });
-
-        this.modelCheckboxesContainer.appendChild(fragment);
     }
 
     loadSettings() {
@@ -74,15 +230,6 @@ export class SettingsPanel {
         if (apiKeys.openai) this.openaiKeyInput.value = apiKeys.openai;
         if (apiKeys.anthropic) this.anthropicKeyInput.value = apiKeys.anthropic;
         if (apiKeys.google) this.googleKeyInput.value = apiKeys.google;
-
-        // Load enabled models
-        const enabledModels = Storage.getEnabledModels();
-        if (enabledModels) {
-            const checkboxes = this.modelCheckboxesContainer.querySelectorAll('input[type="checkbox"]');
-            checkboxes.forEach(checkbox => {
-                checkbox.checked = enabledModels.includes(checkbox.value);
-            });
-        }
     }
 
     save() {
@@ -100,6 +247,9 @@ export class SettingsPanel {
         const enabledModels = Array.from(checkboxes).map(cb => cb.value);
         Storage.setEnabledModels(enabledModels);
 
+        // Save available models metadata
+        Storage.setItem('available_models', JSON.stringify(this.availableModels));
+
         // Show success feedback
         this.saveBtn.textContent = '✓ Saved!';
         setTimeout(() => {
@@ -108,12 +258,20 @@ export class SettingsPanel {
         }, 1000);
 
         // Dispatch event for app to reload models
-        window.dispatchEvent(new CustomEvent('settingsUpdated'));
+        window.dispatchEvent(new CustomEvent('settingsUpdated', {
+            detail: { availableModels: this.availableModels }
+        }));
     }
 
-    open() {
+    async open() {
         this.modal.classList.add('active');
-        this.loadSettings(); // Refresh settings when opening
+        this.loadSettings();
+
+        // Refresh models if needed
+        const hasModels = Object.values(this.availableModels).some(arr => arr.length > 0);
+        if (!hasModels) {
+            await this.fetchAllModels();
+        }
     }
 
     close() {
@@ -121,7 +279,19 @@ export class SettingsPanel {
     }
 
     getEnabledModels() {
-        const stored = Storage.getEnabledModels();
-        return stored || DEFAULT_MODELS;
+        return Storage.getEnabledModels() || [];
+    }
+
+    getAvailableModels() {
+        // Try to load from storage first
+        const stored = Storage.getItem('available_models');
+        if (stored) {
+            try {
+                return JSON.parse(stored);
+            } catch (e) {
+                return this.availableModels;
+            }
+        }
+        return this.availableModels;
     }
 }

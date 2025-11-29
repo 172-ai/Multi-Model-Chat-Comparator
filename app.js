@@ -1,5 +1,4 @@
-// Main Application
-import { MODEL_CONFIGS } from './config/models.js';
+// Main Application with streaming support and dynamic models
 import { ProviderFactory } from './api/providers.js';
 import { Storage } from './utils/storage.js';
 import { Exporter } from './utils/export.js';
@@ -17,19 +16,28 @@ class App {
 
         this.currentResults = null;
         this.modelCards = new Map();
+        this.currentPrompt = '';
 
         this.init();
     }
 
-    init() {
+    async init() {
         // Set up event listeners
         this.promptInput.onSubmit((prompt) => this.handleSubmit(prompt));
         this.exportBtn.addEventListener('click', () => this.handleExport());
 
         // Listen for settings updates
-        window.addEventListener('settingsUpdated', () => {
-            this.updateModelCards();
+        window.addEventListener('settingsUpdated', (e) => {
+            this.updateModelCards(e.detail?.availableModels);
         });
+
+        // Listen for retry events
+        window.addEventListener('retryModel', (e) => {
+            this.retryModel(e.detail.modelId);
+        });
+
+        // Wait for settings panel to initialize
+        await new Promise(resolve => setTimeout(resolve, 500));
 
         // Initialize model cards
         this.updateModelCards();
@@ -50,29 +58,46 @@ class App {
         }
     }
 
-    updateModelCards() {
+    updateModelCards(availableModels) {
         // Clear existing cards
         this.modelsGrid.innerHTML = '';
         this.modelCards.clear();
 
         // Get enabled models
-        const enabledModels = this.settingsPanel.getEnabledModels();
+        const enabledModelIds = this.settingsPanel.getEnabledModels();
 
-        // Create cards for enabled models
-        enabledModels.forEach(modelId => {
-            const config = MODEL_CONFIGS[modelId];
-            if (config) {
-                const card = new ModelCard(modelId, config);
+        if (enabledModelIds.length === 0) {
+            this.modelsGrid.innerHTML = '<p class="no-models-message">Select models in settings to get started</p>';
+            return;
+        }
+
+        // Get available models metadata
+        const availableModelsData = availableModels || this.settingsPanel.getAvailableModels();
+
+        // Combine all models
+        const allModels = [
+            ...(availableModelsData.openai || []),
+            ...(availableModelsData.anthropic || []),
+            ...(availableModelsData.google || [])
+        ];
+
+        // Create cards only for enabled models
+        enabledModelIds.forEach(modelId => {
+            const modelConfig = allModels.find(m => m.id === modelId);
+            if (modelConfig) {
+                const card = new ModelCard(modelConfig);
                 this.modelCards.set(modelId, card);
                 this.modelsGrid.appendChild(card.getElement());
             }
         });
 
-        // Hide cards initially (show skeleton state)
-        this.modelsGrid.style.display = enabledModels.length > 0 ? 'grid' : 'none';
+        // Show grid
+        this.modelsGrid.style.display = this.modelCards.size > 0 ? 'grid' : 'none';
     }
 
     async handleSubmit(prompt) {
+        this.currentPrompt = prompt;
+
         // Disable input during processing
         this.promptInput.setDisabled(true);
         this.exportSection.classList.add('hidden');
@@ -88,28 +113,39 @@ class App {
             return;
         }
 
-        // Set all cards to loading state
-        this.modelCards.forEach(card => card.setLoading());
+        // Set all cards to streaming state
+        this.modelCards.forEach(card => card.setStreaming());
 
-        // Get enabled models
-        const enabledModels = this.settingsPanel.getEnabledModels();
+        // Execute requests with streaming
+        const results = [];
+        const promises = [];
 
-        // Execute requests in parallel
-        const requests = enabledModels.map(modelId =>
-            ProviderFactory.executeRequest(modelId, prompt, apiKeys)
-        );
+        this.modelCards.forEach((card, modelId) => {
+            const modelConfig = card.getModelConfig();
+            const apiKey = apiKeys[modelConfig.provider];
+
+            // Create streaming callback for this card
+            const onChunk = (chunk) => {
+                card.appendStreamChunk(chunk);
+            };
+
+            // Execute request with streaming
+            const promise = ProviderFactory.executeRequest(
+                modelConfig,
+                prompt,
+                apiKey,
+                onChunk
+            ).then(result => {
+                card.setResponse(result);
+                results.push(result);
+                return result;
+            });
+
+            promises.push(promise);
+        });
 
         try {
-            const results = await Promise.all(requests);
-
-            // Update cards with results
-            results.forEach(result => {
-                const modelId = this.getModelIdFromDisplayName(result.model);
-                const card = this.modelCards.get(modelId);
-                if (card) {
-                    card.setResponse(result);
-                }
-            });
+            await Promise.all(promises);
 
             // Store results for export
             this.currentResults = {
@@ -133,13 +169,53 @@ class App {
         }
     }
 
-    getModelIdFromDisplayName(displayName) {
-        for (const [modelId, config] of Object.entries(MODEL_CONFIGS)) {
-            if (config.displayName === displayName) {
-                return modelId;
-            }
+    async retryModel(modelId) {
+        const card = this.modelCards.get(modelId);
+        if (!card || !this.currentPrompt) return;
+
+        const modelConfig = card.getModelConfig();
+        const apiKeys = Storage.getAllApiKeys();
+        const apiKey = apiKeys[modelConfig.provider];
+
+        if (!apiKey) {
+            alert(`Please configure your ${modelConfig.provider} API key in settings.`);
+            return;
         }
-        return null;
+
+        // Set card to streaming state
+        card.setStreaming();
+
+        // Create streaming callback
+        const onChunk = (chunk) => {
+            card.appendStreamChunk(chunk);
+        };
+
+        try {
+            const result = await ProviderFactory.executeRequest(
+                modelConfig,
+                this.currentPrompt,
+                apiKey,
+                onChunk
+            );
+
+            card.setResponse(result);
+
+            // Update results if they exist
+            if (this.currentResults) {
+                const index = this.currentResults.responses.findIndex(r => r.modelId === modelId);
+                if (index >= 0) {
+                    this.currentResults.responses[index] = result;
+                }
+            }
+        } catch (error) {
+            console.error(`Error retrying ${modelId}:`, error);
+            card.setResponse({
+                error: 'Retry failed',
+                errorSuggestion: 'Please try again or check your API key.',
+                errorType: 'unknown',
+                latency: 0
+            });
+        }
     }
 
     handleExport() {

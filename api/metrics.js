@@ -1,5 +1,6 @@
+
 // Token counting and cost calculation utilities
-import { MODEL_CONFIGS } from '../config/models.js';
+import { getModelPricing } from '../config/models.js';
 
 export class Metrics {
     // Approximate token counting (rough estimate based on character count)
@@ -10,13 +11,13 @@ export class Metrics {
         return Math.ceil(text.length / 4);
     }
 
-    // Calculate cost based on token usage and model pricing
-    static calculateCost(modelId, inputTokens, outputTokens) {
-        const config = MODEL_CONFIGS[modelId];
-        if (!config || !config.pricing) return 0;
+    // Calculate cost based on token usage and pricing
+    // pricing should be an object with { input: number, output: number } per 1K tokens
+    static calculateCost(pricing, inputTokens, outputTokens) {
+        if (!pricing) return 0;
 
-        const inputCost = inputTokens * config.pricing.input;
-        const outputCost = outputTokens * config.pricing.output;
+        const inputCost = (inputTokens / 1000) * pricing.input;
+        const outputCost = (outputTokens / 1000) * pricing.output;
 
         return inputCost + outputCost;
     }
@@ -43,19 +44,6 @@ export class Metrics {
             return `${(count / 1000).toFixed(1)}K`;
         }
         return count.toString();
-    }
-
-    // Get model metadata
-    static getModelMetadata(modelId) {
-        const config = MODEL_CONFIGS[modelId];
-        if (!config) return null;
-
-        return {
-            name: config.displayName,
-            provider: config.provider,
-            contextWindow: config.contextWindow,
-            pricing: config.pricing
-        };
     }
 
     // Performance tracker for measuring API call latency

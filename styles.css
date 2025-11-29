@@ -5,27 +5,27 @@
   --color-bg-tertiary: #1a1a28;
   --color-bg-card: rgba(26, 26, 40, 0.6);
   --color-bg-glass: rgba(255, 255, 255, 0.05);
-  
+
   --color-text-primary: #ffffff;
   --color-text-secondary: #a0a0b8;
   --color-text-muted: #6b6b88;
-  
+
   --color-accent-primary: #6366f1;
   --color-accent-secondary: #8b5cf6;
   --color-accent-tertiary: #ec4899;
-  
+
   --color-success: #10b981;
   --color-warning: #f59e0b;
   --color-error: #ef4444;
-  
+
   --color-border: rgba(255, 255, 255, 0.1);
   --color-border-focus: rgba(99, 102, 241, 0.5);
-  
+
   /* Gradients */
   --gradient-primary: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
   --gradient-secondary: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
   --gradient-accent: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
-  
+
   /* Spacing */
   --spacing-xs: 0.5rem;
   --spacing-sm: 0.75rem;
@@ -33,24 +33,24 @@
   --spacing-lg: 1.5rem;
   --spacing-xl: 2rem;
   --spacing-2xl: 3rem;
-  
+
   /* Border Radius */
   --radius-sm: 0.5rem;
   --radius-md: 0.75rem;
   --radius-lg: 1rem;
   --radius-xl: 1.5rem;
-  
+
   /* Shadows */
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.1);
   --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.2);
   --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.3);
   --shadow-glow: 0 0 32px rgba(99, 102, 241, 0.3);
-  
+
   /* Transitions */
   --transition-fast: 150ms ease;
   --transition-base: 250ms ease;
   --transition-slow: 350ms ease;
-  
+
   /* Typography */
   --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
@@ -86,7 +86,7 @@ body::before {
   left: 0;
   width: 100%;
   height: 100%;
-  background: 
+  background:
     radial-gradient(circle at 20% 50%, rgba(99, 102, 241, 0.1) 0%, transparent 50%),
     radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
     radial-gradient(circle at 40% 20%, rgba(236, 72, 153, 0.05) 0%, transparent 50%);
@@ -95,12 +95,24 @@ body::before {
 }
 
 @keyframes backgroundShift {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.8; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.8;
+  }
 }
 
 /* Typography */
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-weight: 700;
   line-height: 1.2;
   margin-bottom: var(--spacing-md);
@@ -310,8 +322,15 @@ h3 {
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.7;
+  }
 }
 
 .model-header {
@@ -404,20 +423,23 @@ h3 {
 
 /* Loading Skeleton */
 .skeleton {
-  background: linear-gradient(
-    90deg,
-    var(--color-bg-tertiary) 0%,
-    var(--color-bg-glass) 50%,
-    var(--color-bg-tertiary) 100%
-  );
+  background: linear-gradient(90deg,
+      var(--color-bg-tertiary) 0%,
+      var(--color-bg-glass) 50%,
+      var(--color-bg-tertiary) 100%);
   background-size: 200% 100%;
   animation: shimmer 2s infinite;
   border-radius: var(--radius-sm);
 }
 
 @keyframes shimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 .skeleton-text {
@@ -614,4 +636,131 @@ h3 {
 
 .mb-lg {
   margin-bottom: var(--spacing-lg);
+}
+
+/* Streaming Indicators */
+.model-card.streaming {
+  border-color: var(--color-accent-primary);
+  box-shadow: 0 0 20px rgba(99, 102, 241, 0.2);
+}
+
+.typing-indicator {
+  display: inline-block;
+  animation: blink 1s infinite;
+  font-size: 1.2rem;
+  color: var(--color-accent-primary);
+}
+
+@keyframes blink {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.3;
+  }
+}
+
+/* Validation States */
+.form-group {
+  position: relative;
+}
+
+.validation-icon {
+  position: absolute;
+  right: var(--spacing-md);
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+.form-input.valid {
+  border-color: var(--color-success);
+}
+
+.form-input.invalid {
+  border-color: var(--color-error);
+}
+
+.form-input.loading {
+  border-color: var(--color-accent-primary);
+}
+
+/* Enhanced Error Messages */
+.error-title {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  margin-bottom: var(--spacing-sm);
+}
+
+.error-icon {
+  font-size: 1.2rem;
+}
+
+.error-suggestion {
+  margin: var(--spacing-sm) 0;
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.retry-btn {
+  margin-top: var(--spacing-md);
+}
+
+.partial-response {
+  margin-top: var(--spacing-md);
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--color-border);
+  opacity: 0.7;
+}
+
+/* Provider Headers in Settings */
+.provider-header {
+  grid-column: 1 / -1;
+  margin-top: var(--spacing-md);
+  margin-bottom: var(--spacing-sm);
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+.provider-header:first-child {
+  margin-top: 0;
+}
+
+/* Model Checkbox Labels */
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-xs);
+}
+
+.model-name {
+  flex: 1;
+  font-size: 0.875rem;
+}
+
+.model-context {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  background: var(--color-bg-tertiary);
+  padding: 0.125rem 0.5rem;
+  border-radius: var(--radius-sm);
+}
+
+/* No Models Message */
+.no-models-message {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: var(--spacing-2xl);
+  color: var(--color-text-muted);
+  font-size: 1.125rem;
 }
