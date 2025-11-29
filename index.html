@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Compare responses from multiple LLM APIs with synchronized card layout, latency tracking, and cost analysis">
+  <title>Multi-Model LLM Comparator</title>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  
+  <!-- Styles -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Settings Panel -->
+  <div class="settings-panel">
+    <button class="settings-button" id="settingsBtn" aria-label="Settings">
+      ⚙️
+    </button>
+  </div>
+
+  <!-- Settings Modal -->
+  <div class="settings-modal" id="settingsModal">
+    <div class="settings-content">
+      <div class="settings-header">
+        <h2>Settings</h2>
+        <button class="close-button" id="closeSettingsBtn" aria-label="Close">&times;</button>
+      </div>
+
+      <div class="settings-section">
+        <h3>API Keys</h3>
+        <div class="form-group">
+          <label class="form-label" for="openaiKey">OpenAI API Key</label>
+          <input 
+            type="password" 
+            id="openaiKey" 
+            class="form-input" 
+            placeholder="sk-..."
+            autocomplete="off"
+          >
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="anthropicKey">Anthropic API Key</label>
+          <input 
+            type="password" 
+            id="anthropicKey" 
+            class="form-input" 
+            placeholder="sk-ant-..."
+            autocomplete="off"
+          >
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="googleKey">Google API Key</label>
+          <input 
+            type="password" 
+            id="googleKey" 
+            class="form-input" 
+            placeholder="AIza..."
+            autocomplete="off"
+          >
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h3>Select Models</h3>
+        <div class="checkbox-group" id="modelCheckboxes">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+
+      <button class="btn btn-primary" id="saveSettingsBtn">Save Settings</button>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <h1>Multi-Model LLM Comparator</h1>
+      <p>Compare responses from multiple AI models in real-time</p>
+    </header>
+
+    <!-- Prompt Section -->
+    <section class="prompt-section">
+      <div class="prompt-container">
+        <textarea 
+          id="promptInput" 
+          class="prompt-textarea" 
+          placeholder="Enter your prompt here..."
+          rows="5"
+        ></textarea>
+        <div class="prompt-controls">
+          <span class="char-counter" id="charCounter">0 characters</span>
+          <div style="display: flex; gap: var(--spacing-md);">
+            <button class="btn btn-secondary" id="clearBtn">Clear</button>
+            <button class="btn btn-primary" id="submitBtn">
+              <span>Compare Models</span>
+              <span>→</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Results Section -->
+    <section class="results-section">
+      <div class="models-grid" id="modelsGrid">
+        <!-- Model cards will be dynamically inserted here -->
+      </div>
+    </section>
+
+    <!-- Export Section -->
+    <section class="export-section hidden" id="exportSection">
+      <button class="btn btn-primary" id="exportBtn">
+        <span>📥</span>
+        <span>Export to JSON</span>
+      </button>
+    </section>
+  </div>
+
+  <!-- Scripts -->
+  <script type="module" src="app.js"></script>
+</body>
+</html>
