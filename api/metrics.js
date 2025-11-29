@@ -24,8 +24,10 @@ export class Metrics {
 
     // Format cost for display
     static formatCost(cost) {
-        if (cost < 0.01) {
-            return `$${(cost * 1000).toFixed(4)}‰`; // Show in per-mille for very small costs
+        if (cost === 0) return '$0.0000';
+        if (cost < 0.0001) {
+            // For very small costs, show more decimal places
+            return `$${cost.toFixed(6)}`;
         }
         return `$${cost.toFixed(4)}`;
     }

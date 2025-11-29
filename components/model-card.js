@@ -138,6 +138,33 @@ export class ModelCard {
         partialDiv.innerHTML = `<p><em>Partial response before error:</em></p><p>${result.text}</p>`;
         responseDiv.appendChild(partialDiv);
       }
+    } else if (result.warning) {
+      // Handle warnings (like empty responses) - different styling from errors
+      this.element.classList.add('warning');
+
+      responseDiv.innerHTML = `
+        <div class="warning-message">
+          <div class="warning-title">
+            <span class="warning-icon">⚠️</span>
+            <strong>${result.warning}</strong>
+          </div>
+          ${result.warningSuggestion ? `<p class="warning-suggestion">${result.warningSuggestion}</p>` : ''}
+          ${result.stopReason ? `<p class="warning-detail">Stop reason: <code>${result.stopReason}</code></p>` : ''}
+          <button class="btn btn-secondary retry-btn" data-model-id="${this.modelId}">Retry with Different Prompt</button>
+        </div>
+      `;
+
+      // Add retry button listener
+      const retryBtn = responseDiv.querySelector('.retry-btn');
+      retryBtn.addEventListener('click', () => {
+        window.dispatchEvent(new CustomEvent('retryModel', {
+          detail: { modelId: this.modelId }
+        }));
+      });
+
+      latencyEl.textContent = Metrics.formatLatency(result.latency);
+      tokensEl.textContent = Metrics.formatTokens(result.totalTokens);
+      costEl.textContent = Metrics.formatCost(result.estimatedCost);
     } else {
       this.element.classList.add('success');
       responseDiv.textContent = result.text || this.streamedText;

@@ -96,8 +96,36 @@ export class OpenAIProvider extends APIProvider {
             // Handle non-streaming response
             const latency = tracker.stop();
             const data = await response.json();
-            const completion = data.choices[0].message.content;
+            const completion = data.choices[0]?.message?.content || '';
             const usage = data.usage;
+            const finishReason = data.choices[0]?.finish_reason;
+
+            // Check for empty response
+            if (!completion || completion.trim() === '') {
+                let errorMsg = 'Empty response from model';
+                let suggestion = 'The model returned no content.';
+
+                if (finishReason === 'content_filter') {
+                    errorMsg = 'Response blocked by content filter';
+                    suggestion = 'OpenAI content filters blocked this response. Try rephrasing your prompt.';
+                } else if (finishReason === 'length') {
+                    errorMsg = 'Response truncated (max tokens reached)';
+                    suggestion = 'The response was cut off. Try a shorter prompt or increase max_tokens.';
+                }
+
+                return {
+                    text: completion,
+                    latency,
+                    inputTokens: usage.prompt_tokens,
+                    outputTokens: usage.completion_tokens,
+                    totalTokens: usage.total_tokens,
+                    estimatedCost: Metrics.calculateCost(pricing, usage.prompt_tokens, usage.completion_tokens),
+                    warning: errorMsg,
+                    warningSuggestion: suggestion,
+                    warningType: 'empty_response',
+                    finishReason: finishReason
+                };
+            }
 
             return {
                 text: completion,
@@ -105,7 +133,8 @@ export class OpenAIProvider extends APIProvider {
                 inputTokens: usage.prompt_tokens,
                 outputTokens: usage.completion_tokens,
                 totalTokens: usage.total_tokens,
-                estimatedCost: Metrics.calculateCost(pricing, usage.prompt_tokens, usage.completion_tokens)
+                estimatedCost: Metrics.calculateCost(pricing, usage.prompt_tokens, usage.completion_tokens),
+                finishReason: finishReason
             };
         } catch (error) {
             const errorInfo = ErrorHandler.parseError(error, 'openai', modelId);
@@ -255,8 +284,39 @@ export class AnthropicProvider extends APIProvider {
             // Handle non-streaming response
             const latency = tracker.stop();
             const data = await response.json();
-            const completion = data.content[0].text;
+            const completion = data.content[0]?.text || '';
             const usage = data.usage;
+            const stopReason = data.stop_reason;
+
+            // Check for empty response or safety filter
+            if (!completion || completion.trim() === '') {
+                let errorMsg = 'Empty response from model';
+                let suggestion = 'The model returned no content.';
+
+                if (stopReason === 'end_turn' && usage.output_tokens === 0) {
+                    errorMsg = 'Model returned empty response';
+                    suggestion = 'This may be due to safety filters or the model interpreting the prompt as complete. Try rephrasing your prompt.';
+                } else if (stopReason === 'max_tokens') {
+                    errorMsg = 'Response truncated (max tokens reached)';
+                    suggestion = 'The response was cut off. Try a shorter prompt or increase max_tokens.';
+                } else if (stopReason === 'stop_sequence') {
+                    errorMsg = 'Response stopped at stop sequence';
+                    suggestion = 'The model encountered a stop sequence.';
+                }
+
+                return {
+                    text: completion,
+                    latency,
+                    inputTokens: usage.input_tokens,
+                    outputTokens: usage.output_tokens,
+                    totalTokens: usage.input_tokens + usage.output_tokens,
+                    estimatedCost: Metrics.calculateCost(pricing, usage.input_tokens, usage.output_tokens),
+                    warning: errorMsg,
+                    warningSuggestion: suggestion,
+                    warningType: 'empty_response',
+                    stopReason: stopReason
+                };
+            }
 
             return {
                 text: completion,
@@ -264,7 +324,8 @@ export class AnthropicProvider extends APIProvider {
                 inputTokens: usage.input_tokens,
                 outputTokens: usage.output_tokens,
                 totalTokens: usage.input_tokens + usage.output_tokens,
-                estimatedCost: Metrics.calculateCost(pricing, usage.input_tokens, usage.output_tokens)
+                estimatedCost: Metrics.calculateCost(pricing, usage.input_tokens, usage.output_tokens),
+                stopReason: stopReason
             };
         } catch (error) {
             const errorInfo = ErrorHandler.parseError(error, 'anthropic', modelId);
@@ -424,12 +485,50 @@ export class GoogleProvider extends APIProvider {
             const data = await response.json();
 
             if (!data.candidates || data.candidates.length === 0) {
-                throw new Error('No response generated');
+                return {
+                    text: '',
+                    latency,
+                    inputTokens: 0,
+                    outputTokens: 0,
+                    totalTokens: 0,
+                    estimatedCost: 0,
+                    warning: 'No response generated',
+                    warningSuggestion: 'Google safety filters may have blocked this response. Try rephrasing your prompt.',
+                    warningType: 'empty_response'
+                };
             }
 
-            const completion = data.candidates[0].content.parts[0].text;
+            const completion = data.candidates[0]?.content?.parts[0]?.text || '';
             const inputTokens = data.usageMetadata?.promptTokenCount || Metrics.estimateTokenCount(prompt);
             const outputTokens = data.usageMetadata?.candidatesTokenCount || Metrics.estimateTokenCount(completion);
+            const finishReason = data.candidates[0]?.finishReason;
+
+            // Check for empty response
+            if (!completion || completion.trim() === '') {
+                let errorMsg = 'Empty response from model';
+                let suggestion = 'The model returned no content.';
+
+                if (finishReason === 'SAFETY') {
+                    errorMsg = 'Response blocked by safety filters';
+                    suggestion = 'Google safety filters blocked this response. Try rephrasing your prompt to avoid sensitive topics.';
+                } else if (finishReason === 'MAX_TOKENS') {
+                    errorMsg = 'Response truncated (max tokens reached)';
+                    suggestion = 'The response was cut off. Try a shorter prompt or increase maxOutputTokens.';
+                }
+
+                return {
+                    text: completion,
+                    latency,
+                    inputTokens,
+                    outputTokens,
+                    totalTokens: inputTokens + outputTokens,
+                    estimatedCost: Metrics.calculateCost(pricing, inputTokens, outputTokens),
+                    warning: errorMsg,
+                    warningSuggestion: suggestion,
+                    warningType: 'empty_response',
+                    finishReason: finishReason
+                };
+            }
 
             return {
                 text: completion,
@@ -437,7 +536,8 @@ export class GoogleProvider extends APIProvider {
                 inputTokens,
                 outputTokens,
                 totalTokens: inputTokens + outputTokens,
-                estimatedCost: Metrics.calculateCost(pricing, inputTokens, outputTokens)
+                estimatedCost: Metrics.calculateCost(pricing, inputTokens, outputTokens),
+                finishReason: finishReason
             };
         } catch (error) {
             const errorInfo = ErrorHandler.parseError(error, 'google', modelId);
