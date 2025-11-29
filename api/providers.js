@@ -345,6 +345,7 @@ export class AnthropicProvider extends APIProvider {
         let buffer = '';
         let inputTokens = 0;
         let outputTokens = 0;
+        let stopReason = null;
 
         try {
             while (true) {
@@ -372,6 +373,7 @@ export class AnthropicProvider extends APIProvider {
                                 inputTokens = parsed.message?.usage?.input_tokens || 0;
                             } else if (parsed.type === 'message_delta') {
                                 outputTokens = parsed.usage?.output_tokens || 0;
+                                stopReason = parsed.delta?.stop_reason || stopReason;
                             }
                         } catch (e) {
                             // Skip invalid JSON
@@ -386,6 +388,37 @@ export class AnthropicProvider extends APIProvider {
             if (!inputTokens) inputTokens = Metrics.estimateTokenCount(prompt);
             if (!outputTokens) outputTokens = Metrics.estimateTokenCount(fullText);
 
+            // Check for empty or very short response (streaming mode)
+            if (!fullText || fullText.trim() === '' || (fullText.trim().length < 10 && outputTokens <= 5)) {
+                let errorMsg = 'Empty or minimal response from model';
+                let suggestion = 'The model returned no meaningful content.';
+
+                if (stopReason === 'end_turn') {
+                    errorMsg = 'Model returned empty response';
+                    suggestion = 'This may be due to safety filters or the model interpreting the prompt as complete. Try rephrasing your prompt.';
+                } else if (stopReason === 'max_tokens') {
+                    errorMsg = 'Response truncated (max tokens reached)';
+                    suggestion = 'The response was cut off. Try a shorter prompt or increase max_tokens.';
+                } else if (stopReason === 'stop_sequence') {
+                    errorMsg = 'Response stopped at stop sequence';
+                    suggestion = 'The model encountered a stop sequence.';
+                }
+
+                return {
+                    text: fullText,
+                    latency,
+                    inputTokens,
+                    outputTokens,
+                    totalTokens: inputTokens + outputTokens,
+                    estimatedCost: Metrics.calculateCost(pricing, inputTokens, outputTokens),
+                    warning: errorMsg,
+                    warningSuggestion: suggestion,
+                    warningType: 'empty_response',
+                    stopReason: stopReason,
+                    streamed: true
+                };
+            }
+
             return {
                 text: fullText,
                 latency,
@@ -393,6 +426,7 @@ export class AnthropicProvider extends APIProvider {
                 outputTokens,
                 totalTokens: inputTokens + outputTokens,
                 estimatedCost: Metrics.calculateCost(pricing, inputTokens, outputTokens),
+                stopReason: stopReason,
                 streamed: true
             };
         } catch (error) {
