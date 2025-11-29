@@ -23,7 +23,7 @@ export class OpenAIProvider extends APIProvider {
         try {
             const response = await fetch(`${API_ENDPOINTS.openai}/models`, {
                 headers: {
-                    'Authorization': `Bearer ${this.apiKey}`
+                    'x-api-key': this.apiKey
                 }
             });
 
@@ -72,7 +72,7 @@ export class OpenAIProvider extends APIProvider {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${this.apiKey}`
+                    'x-api-key': this.apiKey
                 },
                 body: JSON.stringify({
                     model: modelId,
@@ -351,7 +351,9 @@ export class AnthropicProvider extends APIProvider {
 export class GoogleProvider extends APIProvider {
     async listModels() {
         try {
-            const response = await fetch(`${API_ENDPOINTS.google}/models?key=${this.apiKey}`);
+            const response = await fetch(`${API_ENDPOINTS.google}/models`, {
+                headers: { 'x-api-key': this.apiKey }
+            });
 
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}`);
@@ -387,13 +389,14 @@ export class GoogleProvider extends APIProvider {
 
         try {
             const endpoint = onChunk
-                ? `${API_ENDPOINTS.google}/models/${modelId}:streamGenerateContent?key=${this.apiKey}`
-                : `${API_ENDPOINTS.google}/models/${modelId}:generateContent?key=${this.apiKey}`;
+                ? `${API_ENDPOINTS.google}/models/${modelId}:streamGenerateContent`
+                : `${API_ENDPOINTS.google}/models/${modelId}:generateContent`;
 
             const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'x-api-key': this.apiKey
                 },
                 body: JSON.stringify({
                     contents: [{
