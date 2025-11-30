@@ -1,5 +1,64 @@
+```
+// Simple test framework
+const tests = [];
+const describes = [];
+let currentBeforeEach = null;
+
+export function describe(name, fn) {
+  describes.push({ name, fn });
+}
+
+export function it(name, fn) {
+  tests.push({ name, fn });
+}
+
+export function expect(value) {
+  return {
+    toBe(expected) {
+      if (value !== expected) {
+        throw new Error(`Expected ${ value } to be ${ expected } `);
+      }
+    }
+  };
+}
+
+export function beforeEach(fn) {
+  currentBeforeEach = fn;
+}
+
+// Run tests
+export function runTests() {
+  console.log('🧪 Running tests...\n');
+  
+  let passed = 0;
+  let failed = 0;
+
+  describes.forEach(({ name, fn }) => {
+    console.log(`\n📦 ${ name } `);
+    fn();
+    
+    tests.forEach(({ name: testName, fn: testFn }) => {
+      try {
+        if (currentBeforeEach) currentBeforeEach();
+        testFn();
+        console.log(`  ✅ ${ testName } `);
+        passed++;
+      } catch (error) {
+        console.log(`  ❌ ${ testName } `);
+        console.log(`     ${ error.message } `);
+        failed++;
+      }
+    });
+    
+    tests.length = 0; // Clear tests for next describe
+    currentBeforeEach = null;
+  });
+
+  console.log(`\n📊 Results: ${ passed } passed, ${ failed } failed`);
+  return { passed, failed };
+}
+
 // Unit tests for empty response detection and error handling
-import { describe, it, expect, beforeEach } from './test-framework.js';
 
 describe('Empty Response Detection', () => {
     it('should detect empty responses with 0 tokens', () => {
@@ -59,9 +118,9 @@ describe('Cost Calculation', () => {
     it('should format cost in dollars correctly', () => {
         const formatCost = (cost) => {
             if (cost === 0) return '$0.00';
-            if (cost < 0.00001) return `$${cost.toFixed(8)}`;
-            if (cost < 0.01) return `$${cost.toFixed(6)}`;
-            return `$${cost.toFixed(4)}`;
+            if (cost < 0.00001) return `$${ cost.toFixed(8) } `;
+            if (cost < 0.01) return `$${ cost.toFixed(6) } `;
+            return `$${ cost.toFixed(4) } `;
         };
 
         expect(formatCost(0.000039)).toBe('$0.000039');
@@ -72,9 +131,9 @@ describe('Cost Calculation', () => {
     it('should NOT include per-mille symbol', () => {
         const formatCost = (cost) => {
             if (cost === 0) return '$0.00';
-            if (cost < 0.00001) return `$${cost.toFixed(8)}`;
-            if (cost < 0.01) return `$${cost.toFixed(6)}`;
-            return `$${cost.toFixed(4)}`;
+            if (cost < 0.00001) return `$${ cost.toFixed(8) } `;
+            if (cost < 0.01) return `$${ cost.toFixed(6) } `;
+            return `$${ cost.toFixed(4) } `;
         };
 
         const result = formatCost(0.000039);
@@ -113,61 +172,4 @@ describe('Streaming Preference', () => {
         expect(streamingEnabled).toBe(false);
     });
 });
-
-// Simple test framework
-const tests = [];
-const describes = [];
-
-function describe(name, fn) {
-    describes.push({ name, fn });
-}
-
-function it(name, fn) {
-    tests.push({ name, fn });
-}
-
-function expect(value) {
-    return {
-        toBe(expected) {
-            if (value !== expected) {
-                throw new Error(`Expected ${value} to be ${expected}`);
-            }
-        }
-    };
-}
-
-function beforeEach(fn) {
-    // Store setup function
-}
-
-// Run tests
-export function runTests() {
-    console.log('🧪 Running tests...\n');
-
-    let passed = 0;
-    let failed = 0;
-
-    describes.forEach(({ name, fn }) => {
-        console.log(`\n📦 ${name}`);
-        fn();
-
-        tests.forEach(({ name: testName, fn: testFn }) => {
-            try {
-                testFn();
-                console.log(`  ✅ ${testName}`);
-                passed++;
-            } catch (error) {
-                console.log(`  ❌ ${testName}`);
-                console.log(`     ${error.message}`);
-                failed++;
-            }
-        });
-
-        tests.length = 0; // Clear tests for next describe
-    });
-
-    console.log(`\n📊 Results: ${passed} passed, ${failed} failed`);
-    return { passed, failed };
-}
-
-export { describe, it, expect, beforeEach };
+```
