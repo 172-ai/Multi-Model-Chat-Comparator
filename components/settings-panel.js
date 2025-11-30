@@ -13,6 +13,7 @@ export class SettingsPanel {
         this.openaiKeyInput = document.getElementById('openaiKey');
         this.anthropicKeyInput = document.getElementById('anthropicKey');
         this.googleKeyInput = document.getElementById('googleKey');
+        this.streamingEnabledCheckbox = document.getElementById('streamingEnabled');
 
         this.modelCheckboxesContainer = document.getElementById('modelCheckboxes');
 
@@ -230,6 +231,9 @@ export class SettingsPanel {
         if (apiKeys.openai) this.openaiKeyInput.value = apiKeys.openai;
         if (apiKeys.anthropic) this.anthropicKeyInput.value = apiKeys.anthropic;
         if (apiKeys.google) this.googleKeyInput.value = apiKeys.google;
+
+        // Load streaming preference
+        this.streamingEnabledCheckbox.checked = Storage.getStreamingEnabled();
     }
 
     save() {
@@ -241,6 +245,9 @@ export class SettingsPanel {
         if (openaiKey) Storage.setApiKey('openai', openaiKey);
         if (anthropicKey) Storage.setApiKey('anthropic', anthropicKey);
         if (googleKey) Storage.setApiKey('google', googleKey);
+
+        // Save streaming preference
+        Storage.setStreamingEnabled(this.streamingEnabledCheckbox.checked);
 
         // Save enabled models
         const checkboxes = this.modelCheckboxesContainer.querySelectorAll('input[type="checkbox"]:checked');

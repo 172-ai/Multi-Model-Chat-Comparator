@@ -4,7 +4,8 @@ const STORAGE_KEYS = {
     ANTHROPIC_KEY: 'llm_comparator_anthropic_key',
     GOOGLE_KEY: 'llm_comparator_google_key',
     ENABLED_MODELS: 'llm_comparator_enabled_models',
-    HISTORY: 'llm_comparator_history'
+    HISTORY: 'llm_comparator_history',
+    STREAMING_ENABLED: 'llm_comparator_streaming_enabled'
 };
 
 export class Storage {
@@ -66,6 +67,16 @@ export class Storage {
 
     static clearHistory() {
         localStorage.removeItem(STORAGE_KEYS.HISTORY);
+    }
+
+    // Streaming Preference
+    static setStreamingEnabled(enabled) {
+        localStorage.setItem(STORAGE_KEYS.STREAMING_ENABLED, JSON.stringify(enabled));
+    }
+
+    static getStreamingEnabled() {
+        const stored = localStorage.getItem(STORAGE_KEYS.STREAMING_ENABLED);
+        return stored !== null ? JSON.parse(stored) : true; // Default to true
     }
 
     // Clear all data

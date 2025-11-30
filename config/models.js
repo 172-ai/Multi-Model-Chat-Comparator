@@ -57,10 +57,18 @@ export function getModelPricing(modelId) {
 
 // Streaming configuration
 export const STREAMING_CONFIG = {
-  enabled: true,
+  enabled: true, // Can be toggled by user
   chunkDelay: 0, // No artificial delay
   maxRetries: 3,
-  retryDelay: 1000
+  retryDelay: 1000,
+  timeout: 60000 // 60 seconds timeout for streaming connections
+};
+
+// Timeout settings (in milliseconds)
+export const TIMEOUT_CONFIG = {
+  streaming: 60000,      // 60 seconds for streaming requests
+  nonStreaming: 30000,   // 30 seconds for non-streaming requests
+  connection: 10000      // 10 seconds for initial connection
 };
 
 // Model capability detection

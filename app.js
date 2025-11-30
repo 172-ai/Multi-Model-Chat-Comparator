@@ -116,7 +116,8 @@ class App {
         // Set all cards to streaming state
         this.modelCards.forEach(card => card.setStreaming());
 
-        // Execute requests with streaming
+        // Execute requests with streaming (if enabled)
+        const streamingEnabled = Storage.getStreamingEnabled();
         const results = [];
         const promises = [];
 
@@ -124,12 +125,12 @@ class App {
             const modelConfig = card.getModelConfig();
             const apiKey = apiKeys[modelConfig.provider];
 
-            // Create streaming callback for this card
-            const onChunk = (chunk) => {
+            // Create streaming callback only if streaming is enabled
+            const onChunk = streamingEnabled ? (chunk) => {
                 card.appendStreamChunk(chunk);
-            };
+            } : null;
 
-            // Execute request with streaming
+            // Execute request
             const promise = ProviderFactory.executeRequest(
                 modelConfig,
                 prompt,
