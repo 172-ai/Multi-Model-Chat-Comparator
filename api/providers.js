@@ -290,18 +290,57 @@ export class AnthropicProvider extends APIProvider {
 
             // Check for empty or very short response (likely safety filter or refusal)
             if (!completion || completion.trim() === '' || (completion.trim().length < 10 && usage.output_tokens <= 5)) {
-                let errorMsg = 'Empty or minimal response from model';
-                let suggestion = 'The model returned no meaningful content.';
+                let errorMsg = 'Empty Response from Claude';
+                let suggestion = 'Claude returned no meaningful content. ';
 
                 if (stopReason === 'end_turn') {
-                    errorMsg = 'Model returned empty response';
-                    suggestion = 'This may be due to safety filters or the model interpreting the prompt as complete. Try rephrasing your prompt.';
+                    errorMsg = 'Claude Completed Turn with Empty Response';
+                    suggestion = `Claude believes its turn is complete but returned no content. This commonly occurs due to:
+
+• **Prompt Structure**: The model may interpret the conversation as already complete
+• **Intermittent Behavior**: Some Claude models occasionally exhibit this behavior (known issue)
+• **Context Confusion**: The model may think it already responded
+
+**Recommended Actions**:
+1. Try rephrasing your prompt with more explicit instructions
+2. Add "Please provide a detailed response" to your prompt
+3. If using tool results, avoid adding text immediately after them
+4. Retry the request (intermittent issue may resolve)
+5. Try a different Claude model (e.g., Haiku or Opus instead of Sonnet)
+
+**Technical Details**: stop_reason="${stopReason}", output_tokens=${usage.output_tokens}, input_tokens=${usage.input_tokens}`;
                 } else if (stopReason === 'max_tokens') {
-                    errorMsg = 'Response truncated (max tokens reached)';
-                    suggestion = 'The response was cut off. Try a shorter prompt or increase max_tokens.';
+                    errorMsg = 'Response Truncated (Max Tokens Reached)';
+                    suggestion = `The response was cut off because it reached the maximum token limit.
+
+**Recommended Actions**:
+1. Increase the max_tokens parameter in settings
+2. Use a shorter or more focused prompt
+3. Break your question into smaller parts
+
+**Technical Details**: stop_reason="${stopReason}", max_tokens_limit=${DEFAULT_PARAMS.max_tokens}`;
                 } else if (stopReason === 'stop_sequence') {
-                    errorMsg = 'Response stopped at stop sequence';
-                    suggestion = 'The model encountered a stop sequence.';
+                    errorMsg = 'Response Stopped at Stop Sequence';
+                    suggestion = `The model encountered a predefined stop sequence.
+
+**Technical Details**: stop_reason="${stopReason}"`;
+                } else {
+                    // Unknown reason for empty response
+                    errorMsg = 'Unexpected Empty Response';
+                    suggestion = `Claude returned an empty response without a clear reason.
+
+**Possible Causes**:
+• API service overload (HTTP 529 - try again later)
+• Network timeout or connection issue
+• Model-specific intermittent behavior
+
+**Recommended Actions**:
+1. Retry the request after a few seconds
+2. Check Anthropic's status page for service issues
+3. Try a different model
+4. Simplify your prompt
+
+**Technical Details**: stop_reason="${stopReason || 'null'}", output_tokens=${usage.output_tokens}, response_length=${completion.length}`;
                 }
 
                 return {
@@ -316,7 +355,7 @@ export class AnthropicProvider extends APIProvider {
                     warningType: 'empty_response',
                     stopReason: stopReason
                 };
-            }
+            };
 
             return {
                 text: completion,
@@ -390,18 +429,56 @@ export class AnthropicProvider extends APIProvider {
 
             // Check for empty or very short response (streaming mode)
             if (!fullText || fullText.trim() === '' || (fullText.trim().length < 10 && outputTokens <= 5)) {
-                let errorMsg = 'Empty or minimal response from model';
-                let suggestion = 'The model returned no meaningful content.';
+                let errorMsg = 'Empty Response from Claude';
+                let suggestion = 'Claude returned no meaningful content. ';
 
                 if (stopReason === 'end_turn') {
-                    errorMsg = 'Model returned empty response';
-                    suggestion = 'This may be due to safety filters or the model interpreting the prompt as complete. Try rephrasing your prompt.';
+                    errorMsg = 'Claude Completed Turn with Empty Response';
+                    suggestion = `Claude believes its turn is complete but returned no content. This commonly occurs due to:
+
+• **Prompt Structure**: The model may interpret the conversation as already complete
+• **Intermittent Behavior**: Some Claude models occasionally exhibit this behavior (known issue)
+• **Context Confusion**: The model may think it already responded
+
+**Recommended Actions**:
+1. Try rephrasing your prompt with more explicit instructions
+2. Add "Please provide a detailed response" to your prompt
+3. If using tool results, avoid adding text immediately after them
+4. Retry the request (intermittent issue may resolve)
+5. Try a different Claude model (e.g., Haiku or Opus instead of Sonnet)
+
+**Technical Details**: stop_reason="${stopReason}", output_tokens=${outputTokens}, input_tokens=${inputTokens}, streaming=true`;
                 } else if (stopReason === 'max_tokens') {
-                    errorMsg = 'Response truncated (max tokens reached)';
-                    suggestion = 'The response was cut off. Try a shorter prompt or increase max_tokens.';
+                    errorMsg = 'Response Truncated (Max Tokens Reached)';
+                    suggestion = `The response was cut off because it reached the maximum token limit.
+
+**Recommended Actions**:
+1. Increase the max_tokens parameter in settings
+2. Use a shorter or more focused prompt
+3. Break your question into smaller parts
+
+**Technical Details**: stop_reason="${stopReason}", max_tokens_limit=${DEFAULT_PARAMS.max_tokens}`;
                 } else if (stopReason === 'stop_sequence') {
-                    errorMsg = 'Response stopped at stop sequence';
-                    suggestion = 'The model encountered a stop sequence.';
+                    errorMsg = 'Response Stopped at Stop Sequence';
+                    suggestion = `The model encountered a predefined stop sequence.
+
+**Technical Details**: stop_reason="${stopReason}"`;
+                } else {
+                    errorMsg = 'Unexpected Empty Response';
+                    suggestion = `Claude returned an empty response without a clear reason.
+
+**Possible Causes**:
+• API service overload (HTTP 529 - try again later)
+• Network timeout or connection issue
+• Model-specific intermittent behavior
+
+**Recommended Actions**:
+1. Retry the request after a few seconds
+2. Check Anthropic's status page for service issues
+3. Try a different model
+4. Simplify your prompt
+
+**Technical Details**: stop_reason="${stopReason || 'null'}", output_tokens=${outputTokens}, response_length=${fullText.length}, streaming=true`;
                 }
 
                 return {
