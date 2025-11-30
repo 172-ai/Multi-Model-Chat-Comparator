@@ -510,6 +510,46 @@ h3 {
   color: var(--color-warning);
 }
 
+/* Raw Response Display */
+.raw-response {
+  margin-top: var(--spacing-md);
+  padding: var(--spacing-md);
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  overflow-x: auto;
+  max-height: 400px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.raw-response::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.raw-response::-webkit-scrollbar-track {
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-sm);
+}
+
+.raw-response::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.raw-response::-webkit-scrollbar-thumb:hover {
+  background: var(--color-border-focus);
+}
+
+.show-raw-btn {
+  margin-top: var(--spacing-md);
+}
+
 /* Settings Panel */
 .settings-panel {
   position: fixed;

@@ -150,16 +150,25 @@ export class ModelCard {
           </div>
           ${result.warningSuggestion ? `<p class="warning-suggestion">${result.warningSuggestion}</p>` : ''}
           ${result.stopReason ? `<p class="warning-detail">Stop reason: <code>${result.stopReason}</code></p>` : ''}
-          <button class="btn btn-secondary retry-btn" data-model-id="${this.modelId}">Retry with Different Prompt</button>
+          <button class="btn btn-secondary show-raw-btn" data-model-id="${this.modelId}">Show Raw Response</button>
+          <pre class="raw-response hidden" id="raw-${this.modelId}"></pre>
         </div>
       `;
 
-      // Add retry button listener
-      const retryBtn = responseDiv.querySelector('.retry-btn');
-      retryBtn.addEventListener('click', () => {
-        window.dispatchEvent(new CustomEvent('retryModel', {
-          detail: { modelId: this.modelId }
-        }));
+      // Add show raw response button listener
+      const showRawBtn = responseDiv.querySelector('.show-raw-btn');
+      const rawResponsePre = responseDiv.querySelector('.raw-response');
+      showRawBtn.addEventListener('click', () => {
+        if (rawResponsePre.classList.contains('hidden')) {
+          // Show raw response
+          rawResponsePre.textContent = JSON.stringify(result, null, 2);
+          rawResponsePre.classList.remove('hidden');
+          showRawBtn.textContent = 'Hide Raw Response';
+        } else {
+          // Hide raw response
+          rawResponsePre.classList.add('hidden');
+          showRawBtn.textContent = 'Show Raw Response';
+        }
       });
 
       latencyEl.textContent = Metrics.formatLatency(result.latency);
