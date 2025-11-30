@@ -74,19 +74,29 @@ app.post('/api/proxy/anthropic/*', async (req, res) => {
             res.setHeader('Content-Type', 'text/event-stream');
             res.setHeader('Cache-Control', 'no-cache');
             res.setHeader('Connection', 'keep-alive');
+
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-                res.write(decoder.decode(value, { stream: true }));
+
+            try {
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    res.write(decoder.decode(value, { stream: true }));
+                }
+                res.end();
+            } catch (streamError) {
+                console.error('Streaming error:', streamError);
+                // Send error event in SSE format
+                res.write(`data: ${JSON.stringify({ type: 'error', error: { message: 'Stream interrupted: ' + streamError.message } })}\n\n`);
+                res.end();
             }
-            res.end();
         } else {
             const data = await response.json();
             res.status(response.status).json(data);
         }
     } catch (error) {
+        console.error('Proxy error:', error);
         res.status(500).json({ error: { message: error.message } });
     }
 });

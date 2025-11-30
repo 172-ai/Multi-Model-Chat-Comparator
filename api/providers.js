@@ -325,9 +325,28 @@ export class AnthropicProvider extends APIProvider {
 
 **Technical Details**: stop_reason="${stopReason}"`;
                 } else {
-                    // Unknown reason for empty response
-                    errorMsg = 'Unexpected Empty Response';
-                    suggestion = `Claude returned an empty response without a clear reason.
+                    // Unknown reason for empty response - likely streaming timeout
+                    if (stopReason === null) {
+                        errorMsg = 'Streaming Connection Interrupted';
+                        suggestion = `The streaming connection was interrupted before receiving a complete response from Claude.
+
+**Most Likely Causes**:
+• **Proxy/Network Timeout**: The connection between the proxy server and Anthropic's API timed out
+• **Network Interruption**: Temporary network issue during streaming
+• **API Connection Reset**: Anthropic's server closed the connection unexpectedly
+
+**Recommended Actions**:
+1. **Retry immediately** - This is usually a transient network issue
+2. Check your internet connection stability
+3. If it persists, check Anthropic's status page for API outages
+4. Try using a different network (e.g., switch from WiFi to ethernet)
+5. Consider increasing proxy timeout settings if this happens frequently
+
+**Technical Details**: stop_reason=null (never received), output_tokens=${usage.output_tokens}, response_length=${completion.length}, latency=${latency}ms
+**Diagnosis**: No stop_reason received indicates the streaming connection ended prematurely, likely due to network/proxy timeout rather than an API-level issue.`;
+                    } else {
+                        errorMsg = 'Unexpected Empty Response';
+                        suggestion = `Claude returned an empty response without a clear reason.
 
 **Possible Causes**:
 • API service overload (HTTP 529 - try again later)
@@ -341,6 +360,7 @@ export class AnthropicProvider extends APIProvider {
 4. Simplify your prompt
 
 **Technical Details**: stop_reason="${stopReason || 'null'}", output_tokens=${usage.output_tokens}, response_length=${completion.length}`;
+                    }
                 }
 
                 return {
