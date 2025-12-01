@@ -254,6 +254,10 @@ export class AnthropicProvider extends APIProvider {
         const tracker = Metrics.createPerformanceTracker();
         const pricing = getModelPricing(modelId);
 
+        console.log('='.repeat(80));
+        console.log(`[ANTHROPIC REQUEST] Model: ${modelId}, Streaming: ${!!onChunk}`);
+        console.log('Prompt:', prompt.substring(0, 100));
+
         try {
             const response = await fetch(`${API_ENDPOINTS.anthropic}/messages`, {
                 method: 'POST',
@@ -271,9 +275,13 @@ export class AnthropicProvider extends APIProvider {
                 })
             });
 
+            console.log(`[ANTHROPIC RESPONSE] Status: ${response.status}, OK: ${response.ok}`);
+
             if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.error?.message || `HTTP ${response.status}`);
+                const errorBody = await response.json();
+                console.log('[ANTHROPIC ERROR RESPONSE]:', JSON.stringify(errorBody, null, 2));
+                const errorMessage = errorBody.error?.message || errorBody.message || `HTTP ${response.status}`;
+                throw new Error(errorMessage);
             }
 
             // Handle streaming response
@@ -284,6 +292,11 @@ export class AnthropicProvider extends APIProvider {
             // Handle non-streaming response
             const latency = tracker.stop();
             const data = await response.json();
+            console.log('[ANTHROPIC SUCCESS]:', {
+                model: modelId,
+                usage: data.usage,
+                stopReason: data.stop_reason
+            });
             const completion = data.content[0]?.text || '';
             const usage = data.usage;
             const stopReason = data.stop_reason;
@@ -387,12 +400,20 @@ export class AnthropicProvider extends APIProvider {
                 stopReason: stopReason
             };
         } catch (error) {
-            const errorInfo = ErrorHandler.parseError(error, 'anthropic', modelId);
+            console.error('[ANTHROPIC ERROR]:', error.message);
+            console.error('Stack:', error.stack);
+
+            // Return error WITHOUT parsing through ErrorHandler
+            // ErrorHandler is replacing "model" errors
             return {
-                error: errorInfo.message,
-                errorSuggestion: errorInfo.suggestion,
-                errorType: errorInfo.type,
-                latency: tracker.stop()
+                error: error.message,
+                errorSuggestion: 'Check console logs for details',
+                errorType: 'api_error',
+                latency: tracker.stop(),
+                rawError: {
+                    message: error.message,
+                    stack: error.stack
+                }
             };
         }
     }

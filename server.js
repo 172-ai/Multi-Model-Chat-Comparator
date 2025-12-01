@@ -160,10 +160,11 @@ app.post('/api/proxy/google/*', async (req, res) => {
     if (!apiKey) return res.status(401).json({ error: { message: 'API key required' } });
 
     try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/${path}`;
         const response = await fetch(url, {
             method: req.method,
             headers: { 'Content-Type': 'application/json' },
-            body: req.method !== 'GET' ? JSON.stringify({ ...req.body, key: undefined }) : undefined
+            body: req.method !== 'GET' ? JSON.stringify({ ...req.body, key: apiKey }) : undefined
         });
 
         if (path.includes('streamGenerateContent')) {
