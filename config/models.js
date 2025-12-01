@@ -40,12 +40,19 @@ export const PRICING_FALLBACKS = {
 // Get pricing information for a model
 // Returns null if pricing not available (graceful handling for new/unknown models)
 export function getModelPricing(modelId) {
-  return pricing;
-}
+  // Check exact match first
+  if (PRICING_FALLBACKS[modelId]) {
+    return PRICING_FALLBACKS[modelId];
   }
 
-// Generic fallback pricing
-return { input: 0.001, output: 0.002 };
+  // Check for partial matches (e.g., "gpt-4-turbo-2024-04-09" matches "gpt-4-turbo")
+  for (const [key, pricing] of Object.entries(PRICING_FALLBACKS)) {
+    if (modelId.startsWith(key)) {
+      return pricing;
+    }
+  }
+
+  return null;
 }
 
 // Streaming configuration
