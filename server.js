@@ -160,12 +160,17 @@ app.post('/api/proxy/google/*', async (req, res) => {
     if (!apiKey) return res.status(401).json({ error: { message: 'API key required' } });
 
     try {
-        const url = `https://generativelanguage.googleapis.com/v1beta/${path}`;
+        // Google requires API key as query parameter, not in body
+        const url = `https://generativelanguage.googleapis.com/v1beta/${path}?key=${apiKey}`;
+        console.log('[GOOGLE REQUEST]:', url);
+
         const response = await fetch(url, {
             method: req.method,
             headers: { 'Content-Type': 'application/json' },
-            body: req.method !== 'GET' ? JSON.stringify({ ...req.body, key: apiKey }) : undefined
+            body: req.method !== 'GET' ? JSON.stringify(req.body) : undefined
         });
+
+        console.log('[GOOGLE RESPONSE]:', response.status);
 
         if (path.includes('streamGenerateContent')) {
             res.setHeader('Content-Type', 'text/event-stream');
@@ -181,9 +186,11 @@ app.post('/api/proxy/google/*', async (req, res) => {
             res.end();
         } else {
             const data = await response.json();
+            console.log('[GOOGLE DATA]:', JSON.stringify(data, null, 2).substring(0, 500));
             res.status(response.status).json(data);
         }
     } catch (error) {
+        console.error('[GOOGLE ERROR]:', error);
         res.status(500).json({ error: { message: error.message } });
     }
 });
