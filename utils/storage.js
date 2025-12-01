@@ -5,7 +5,9 @@ const STORAGE_KEYS = {
     GOOGLE_KEY: 'llm_comparator_google_key',
     ENABLED_MODELS: 'llm_comparator_enabled_models',
     HISTORY: 'llm_comparator_history',
-    STREAMING_ENABLED: 'llm_comparator_streaming_enabled'
+    STREAMING_ENABLED: 'llm_comparator_streaming_enabled',
+    TEMPERATURE: 'llm_comparator_temperature',
+    MAX_TOKENS: 'llm_comparator_max_tokens'
 };
 
 export class Storage {
