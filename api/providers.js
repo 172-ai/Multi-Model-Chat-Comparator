@@ -210,39 +210,20 @@ export class OpenAIProvider extends APIProvider {
 // Anthropic Provider
 export class AnthropicProvider extends APIProvider {
     async listModels() {
-        // Anthropic doesn't provide a models list endpoint, so we return known models
+        // Anthropic doesn't provide a models list endpoint, so we return known working models
+        // NOTE: Some Sonnet variants are deprecated or require specific API tiers
+        // Only including models verified to work: Opus and Haiku
         return [
             {
-                id: 'claude-3-5-sonnet-20241022',
-                name: 'claude-3-5-sonnet-20241022',
-                provider: 'anthropic',
-                contextWindow: 200000,
-                capabilities: ['chat', 'streaming']
-            },
-            {
-                id: 'claude-3-5-sonnet-20240620',
-                name: 'claude-3-5-sonnet-20240620',
-                provider: 'anthropic',
-                contextWindow: 200000,
-                capabilities: ['chat', 'streaming']
-            },
-            {
                 id: 'claude-3-opus-20240229',
-                name: 'claude-3-opus-20240229',
-                provider: 'anthropic',
-                contextWindow: 200000,
-                capabilities: ['chat', 'streaming']
-            },
-            {
-                id: 'claude-3-sonnet-20240229',
-                name: 'claude-3-sonnet-20240229',
+                name: 'Claude 3 Opus',
                 provider: 'anthropic',
                 contextWindow: 200000,
                 capabilities: ['chat', 'streaming']
             },
             {
                 id: 'claude-3-haiku-20240307',
-                name: 'claude-3-haiku-20240307',
+                name: 'Claude 3 Haiku',
                 provider: 'anthropic',
                 contextWindow: 200000,
                 capabilities: ['chat', 'streaming']
