@@ -213,13 +213,19 @@ export class OpenAIProvider extends APIProvider {
 // Anthropic Provider
 export class AnthropicProvider extends APIProvider {
     async listModels() {
-        // Anthropic doesn't provide a models list endpoint, so we return known working models
-        // NOTE: Some Sonnet variants are deprecated or require specific API tiers
-        // Only including models verified to work: Opus and Haiku
+        // Anthropic doesn't provide a models list endpoint, so we return known models
+        // Updated to remove specific version IDs that might be restricted/deprecated
         return [
             {
-                id: 'claude-3-opus-20240229',
-                name: 'Claude 3 Opus',
+                id: 'claude-3-5-sonnet-latest',
+                name: 'Claude 3.5 Sonnet (Latest)',
+                provider: 'anthropic',
+                contextWindow: 200000,
+                capabilities: ['chat', 'streaming']
+            },
+            {
+                id: 'claude-3-opus-latest',
+                name: 'Claude 3 Opus (Latest)',
                 provider: 'anthropic',
                 contextWindow: 200000,
                 capabilities: ['chat', 'streaming']
@@ -390,29 +396,26 @@ export class AnthropicProvider extends APIProvider {
             console.error('Stack:', error.stack);
 
             // Check if this is a "model not available" error
-            const isModelError = error.message.startsWith('model:');
+            // Anthropic API sometimes returns "model: <model_id>" or specific error types
+            const isModelError = error.message.includes('model:') ||
+                error.message.includes('not found') ||
+                error.message.includes('not available');
 
             if (isModelError) {
-                const modelIdFromError = error.message.replace('model: ', '').trim();
+                const modelIdFromError = error.message.replace('model:', '').replace('Error:', '').trim();
                 return {
-                    error: `Model Not Available: ${modelIdFromError}`,
-                    errorSuggestion: `This Claude model is not available with your Anthropic API key.
-
-**Possible Reasons:**
-• Model has been deprecated or removed by Anthropic
-• Model was renamed (check Anthropic's documentation for current names)
-• Your API tier doesn't include access to this model
-• Model ID is incorrect
+                    error: `Model Unavailable: ${modelIdFromError || modelId}`,
+                    errorSuggestion: `The model "${modelId}" is not available with your current API key or tier.
+                    
+**Common Reasons:**
+• **Tier Restrictions**: Some models (like Claude 3.5 Sonnet) require a paid tier (Build Tier 1+)
+• **Deprecation**: The model ID might be outdated
+• **Region**: The model might not be available in your region
 
 **Recommended Actions:**
-1. Check Anthropic's console at https://console.anthropic.com/
-2. Verify which models are available for your account
-3. Remove this model from your selected models in settings
-4. Try using Claude Opus or Claude Haiku instead (verified working)
-
-**Note:** The models that typically work are:
-• claude-3-opus-20240229
-• claude-3-haiku-20240307`,
+1. Check your Anthropic Console (Settings > Plans) to verify your tier
+2. Use **Claude 3 Haiku** or **Claude 3 Opus** (usually available on free tier)
+3. Remove this model from your settings if it persists`,
                     errorType: 'model_not_available',
                     latency: tracker.stop()
                 };
