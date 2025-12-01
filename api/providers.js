@@ -397,85 +397,112 @@ export class AnthropicProvider extends APIProvider {
                 outputTokens: usage.output_tokens,
                 totalTokens: usage.input_tokens + usage.output_tokens,
                 estimatedCost: Metrics.calculateCost(pricing, usage.input_tokens, usage.output_tokens),
-                stopReason: stopReason
-            };
-        } catch (error) {
-            console.error('[ANTHROPIC ERROR]:', error.message);
-            console.error('Stack:', error.stack);
+            } catch (error) {
+                console.error('[ANTHROPIC ERROR]:', error.message);
+                console.error('Stack:', error.stack);
 
-            // Return error WITHOUT parsing through ErrorHandler
-            // ErrorHandler is replacing "model" errors
-            return {
-                error: error.message,
-                errorSuggestion: 'Check console logs for details',
-                errorType: 'api_error',
-                latency: tracker.stop(),
-                rawError: {
-                    message: error.message,
-                    stack: error.stack
+                // Check if this is a "model not available" error
+                const isModelError = error.message.startsWith('model:');
+
+                if (isModelError) {
+                    const modelIdFromError = error.message.replace('model: ', '').trim();
+                    return {
+                        error: `Model Not Available: ${modelIdFromError}`,
+                        errorSuggestion: `This Claude model is not available with your Anthropic API key.
+
+**Possible Reasons:**
+• Model has been deprecated or removed by Anthropic
+• Model was renamed (check Anthropic's documentation for current names)
+• Your API tier doesn't include access to this model
+• Model ID is incorrect
+
+**Recommended Actions:**
+1. Check Anthropic's console at https://console.anthropic.com/
+2. Verify which models are available for your account
+3. Remove this model from your selected models in settings
+4. Try using Claude Opus or Claude Haiku instead (verified working)
+
+**Note:** The models that typically work are:
+• claude-3-opus-20240229
+• claude-3-haiku-20240307`,
+                        errorType: 'model_not_available',
+                        latency: tracker.stop()
+                    };
                 }
-            };
+
+                // Return error WITHOUT parsing through ErrorHandler
+                // ErrorHandler is replacing "model" errors
+                return {
+                    error: error.message,
+                    errorSuggestion: 'Check console logs for details. This may be a temporary API issue.',
+                    errorType: 'api_error',
+                    latency: tracker.stop(),
+                    rawError: {
+                        message: error.message,
+                        stack: error.stack
+                    }
+                };
+            }
         }
-    }
 
     async handleStreamingResponse(response, tracker, pricing, modelId, prompt, onChunk) {
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let fullText = '';
-        let buffer = '';
-        let inputTokens = 0;
-        let outputTokens = 0;
-        let stopReason = null;
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let fullText = '';
+            let buffer = '';
+            let inputTokens = 0;
+            let outputTokens = 0;
+            let stopReason = null;
 
-        try {
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
+            try {
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
 
-                buffer += decoder.decode(value, { stream: true });
-                const lines = buffer.split('\n');
-                buffer = lines.pop() || '';
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop() || '';
 
-                for (const line of lines) {
-                    if (line.startsWith('data: ')) {
-                        const data = line.slice(6);
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            const data = line.slice(6);
 
-                        try {
-                            const parsed = JSON.parse(data);
+                            try {
+                                const parsed = JSON.parse(data);
 
-                            if (parsed.type === 'content_block_delta') {
-                                const content = parsed.delta?.text;
-                                if (content) {
-                                    fullText += content;
-                                    onChunk(content);
+                                if (parsed.type === 'content_block_delta') {
+                                    const content = parsed.delta?.text;
+                                    if (content) {
+                                        fullText += content;
+                                        onChunk(content);
+                                    }
+                                } else if (parsed.type === 'message_start') {
+                                    inputTokens = parsed.message?.usage?.input_tokens || 0;
+                                } else if (parsed.type === 'message_delta') {
+                                    outputTokens = parsed.usage?.output_tokens || 0;
+                                    stopReason = parsed.delta?.stop_reason || stopReason;
                                 }
-                            } else if (parsed.type === 'message_start') {
-                                inputTokens = parsed.message?.usage?.input_tokens || 0;
-                            } else if (parsed.type === 'message_delta') {
-                                outputTokens = parsed.usage?.output_tokens || 0;
-                                stopReason = parsed.delta?.stop_reason || stopReason;
+                            } catch (e) {
+                                // Skip invalid JSON
                             }
-                        } catch (e) {
-                            // Skip invalid JSON
                         }
                     }
                 }
-            }
 
-            const latency = tracker.stop();
+                const latency = tracker.stop();
 
-            // Use reported tokens or estimate
-            if (!inputTokens) inputTokens = Metrics.estimateTokenCount(prompt);
-            if (!outputTokens) outputTokens = Metrics.estimateTokenCount(fullText);
+                // Use reported tokens or estimate
+                if (!inputTokens) inputTokens = Metrics.estimateTokenCount(prompt);
+                if (!outputTokens) outputTokens = Metrics.estimateTokenCount(fullText);
 
-            // Check for empty or very short response (streaming mode)
-            if (!fullText || fullText.trim() === '' || (fullText.trim().length < 10 && outputTokens <= 5)) {
-                let errorMsg = 'Empty Response from Claude';
-                let suggestion = 'Claude returned no meaningful content. ';
+                // Check for empty or very short response (streaming mode)
+                if (!fullText || fullText.trim() === '' || (fullText.trim().length < 10 && outputTokens <= 5)) {
+                    let errorMsg = 'Empty Response from Claude';
+                    let suggestion = 'Claude returned no meaningful content. ';
 
-                if (stopReason === 'end_turn') {
-                    errorMsg = 'Claude Completed Turn with Empty Response';
-                    suggestion = `Claude believes its turn is complete but returned no content. This commonly occurs due to:
+                    if (stopReason === 'end_turn') {
+                        errorMsg = 'Claude Completed Turn with Empty Response';
+                        suggestion = `Claude believes its turn is complete but returned no content. This commonly occurs due to:
 
 • **Prompt Structure**: The model may interpret the conversation as already complete
 • **Intermittent Behavior**: Some Claude models occasionally exhibit this behavior (known issue)
@@ -489,9 +516,9 @@ export class AnthropicProvider extends APIProvider {
 5. Try a different Claude model (e.g., Haiku or Opus instead of Sonnet)
 
 **Technical Details**: stop_reason="${stopReason}", output_tokens=${outputTokens}, input_tokens=${inputTokens}, streaming=true`;
-                } else if (stopReason === 'max_tokens') {
-                    errorMsg = 'Response Truncated (Max Tokens Reached)';
-                    suggestion = `The response was cut off because it reached the maximum token limit.
+                    } else if (stopReason === 'max_tokens') {
+                        errorMsg = 'Response Truncated (Max Tokens Reached)';
+                        suggestion = `The response was cut off because it reached the maximum token limit.
 
 **Recommended Actions**:
 1. Increase the max_tokens parameter in settings
@@ -499,14 +526,14 @@ export class AnthropicProvider extends APIProvider {
 3. Break your question into smaller parts
 
 **Technical Details**: stop_reason="${stopReason}", max_tokens_limit=${DEFAULT_PARAMS.max_tokens}`;
-                } else if (stopReason === 'stop_sequence') {
-                    errorMsg = 'Response Stopped at Stop Sequence';
-                    suggestion = `The model encountered a predefined stop sequence.
+                    } else if (stopReason === 'stop_sequence') {
+                        errorMsg = 'Response Stopped at Stop Sequence';
+                        suggestion = `The model encountered a predefined stop sequence.
 
 **Technical Details**: stop_reason="${stopReason}"`;
-                } else {
-                    errorMsg = 'Unexpected Empty Response';
-                    suggestion = `Claude returned an empty response without a clear reason.
+                    } else {
+                        errorMsg = 'Unexpected Empty Response';
+                        suggestion = `Claude returned an empty response without a clear reason.
 
 **Possible Causes**:
 • API service overload (HTTP 529 - try again later)
@@ -520,6 +547,21 @@ export class AnthropicProvider extends APIProvider {
 4. Simplify your prompt
 
 **Technical Details**: stop_reason="${stopReason || 'null'}", output_tokens=${outputTokens}, response_length=${fullText.length}, streaming=true`;
+                    }
+
+                    return {
+                        text: fullText,
+                        latency,
+                        inputTokens,
+                        outputTokens,
+                        totalTokens: inputTokens + outputTokens,
+                        estimatedCost: Metrics.calculateCost(pricing, inputTokens, outputTokens),
+                        warning: errorMsg,
+                        warningSuggestion: suggestion,
+                        warningType: 'empty_response',
+                        stopReason: stopReason,
+                        streamed: true
+                    };
                 }
 
                 return {
@@ -529,36 +571,21 @@ export class AnthropicProvider extends APIProvider {
                     outputTokens,
                     totalTokens: inputTokens + outputTokens,
                     estimatedCost: Metrics.calculateCost(pricing, inputTokens, outputTokens),
-                    warning: errorMsg,
-                    warningSuggestion: suggestion,
-                    warningType: 'empty_response',
                     stopReason: stopReason,
                     streamed: true
                 };
+            } catch (error) {
+                const errorInfo = ErrorHandler.parseError(error, 'anthropic', modelId);
+                return {
+                    error: errorInfo.message,
+                    errorSuggestion: errorInfo.suggestion,
+                    errorType: errorInfo.type,
+                    latency: tracker.stop(),
+                    text: fullText
+                };
             }
-
-            return {
-                text: fullText,
-                latency,
-                inputTokens,
-                outputTokens,
-                totalTokens: inputTokens + outputTokens,
-                estimatedCost: Metrics.calculateCost(pricing, inputTokens, outputTokens),
-                stopReason: stopReason,
-                streamed: true
-            };
-        } catch (error) {
-            const errorInfo = ErrorHandler.parseError(error, 'anthropic', modelId);
-            return {
-                error: errorInfo.message,
-                errorSuggestion: errorInfo.suggestion,
-                errorType: errorInfo.type,
-                latency: tracker.stop(),
-                text: fullText
-            };
         }
     }
-}
 
 // Google Provider
 export class GoogleProvider extends APIProvider {
