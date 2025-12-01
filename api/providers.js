@@ -482,13 +482,13 @@ export class AnthropicProvider extends APIProvider {
             }
 
             const latency = tracker.stop();
-
             // Use reported tokens or estimate
             if (!inputTokens) inputTokens = Metrics.estimateTokenCount(prompt);
             if (!outputTokens) outputTokens = Metrics.estimateTokenCount(fullText);
 
-            // Check for empty or very short response (streaming mode)
-            if (!fullText || fullText.trim() === '' || (fullText.trim().length < 10 && outputTokens <= 5)) {
+            // Check for empty response (truly empty, not just short) - streaming mode
+            // Note: Short responses like "4" or "Yes" are valid and should not be flagged
+            if (!fullText || fullText.trim() === '') {
                 let errorMsg = 'Empty Response from Claude';
                 let suggestion = 'Claude returned no meaningful content. ';
 
