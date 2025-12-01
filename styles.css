@@ -682,10 +682,22 @@ h3 {
   margin-bottom: var(--spacing-md);
 }
 
+.form-row {
+  display: flex;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+}
+
+.half-width {
+  flex: 1;
+  margin-bottom: 0;
+}
+
 .form-label {
   display: block;
   margin-bottom: var(--spacing-xs);
-  color: var(--color-text-secondary);
+  font-weight: 500;
+  color: var(--color-text-primary);
   font-size: 0.875rem;
 }
 
@@ -698,13 +710,19 @@ h3 {
   color: var(--color-text-primary);
   font-family: var(--font-mono);
   font-size: 0.875rem;
-  transition: all var(--transition-base);
+  transition: all 0.2s ease;
 }
 
 .form-input:focus {
   outline: none;
-  border-color: var(--color-accent-primary);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+
+.form-range {
+  width: 100%;
+  margin: var(--spacing-sm) 0;
+  accent-color: var(--color-primary);
 }
 
 .checkbox-group {

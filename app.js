@@ -131,10 +131,17 @@ class App {
             } : null;
 
             // Execute request
+            const params = Storage.getModelParams();
+            const options = {
+                temperature: params.temperature,
+                maxTokens: params.maxTokens
+            };
+
             const promise = ProviderFactory.executeRequest(
                 modelConfig,
                 prompt,
                 apiKey,
+                options,
                 onChunk
             ).then(result => {
                 card.setResponse(result);
@@ -192,10 +199,17 @@ class App {
         };
 
         try {
+            const params = Storage.getModelParams();
+            const options = {
+                temperature: params.temperature,
+                maxTokens: params.maxTokens
+            };
+
             const result = await ProviderFactory.executeRequest(
                 modelConfig,
                 this.currentPrompt,
                 apiKey,
+                options,
                 onChunk
             );
 

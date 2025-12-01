@@ -79,6 +79,26 @@ export class Storage {
         return stored !== null ? JSON.parse(stored) : true; // Default to true
     }
 
+    // Model Parameters
+    static setModelParams(params) {
+        if (params.temperature !== undefined) {
+            localStorage.setItem(STORAGE_KEYS.TEMPERATURE, params.temperature);
+        }
+        if (params.maxTokens !== undefined) {
+            localStorage.setItem(STORAGE_KEYS.MAX_TOKENS, params.maxTokens);
+        }
+    }
+
+    static getModelParams() {
+        const temp = localStorage.getItem(STORAGE_KEYS.TEMPERATURE);
+        const maxTokens = localStorage.getItem(STORAGE_KEYS.MAX_TOKENS);
+
+        return {
+            temperature: temp !== null ? parseFloat(temp) : 0.7,
+            maxTokens: maxTokens !== null ? parseInt(maxTokens) : 2048
+        };
+    }
+
     // Clear all data
     static clearAll() {
         Object.values(STORAGE_KEYS).forEach(key => {

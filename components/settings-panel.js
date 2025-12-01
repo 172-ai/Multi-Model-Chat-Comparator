@@ -15,6 +15,10 @@ export class SettingsPanel {
         this.googleKeyInput = document.getElementById('googleKey');
         this.streamingEnabledCheckbox = document.getElementById('streamingEnabled');
 
+        this.temperatureInput = document.getElementById('temperatureInput');
+        this.temperatureValue = document.getElementById('temperatureValue');
+        this.maxTokensInput = document.getElementById('maxTokensInput');
+
         this.modelCheckboxesContainer = document.getElementById('modelCheckboxes');
 
         this.availableModels = {
@@ -50,6 +54,11 @@ export class SettingsPanel {
         this.openaiKeyInput.addEventListener('blur', () => this.validateAndFetchModels('openai'));
         this.anthropicKeyInput.addEventListener('blur', () => this.validateAndFetchModels('anthropic'));
         this.googleKeyInput.addEventListener('blur', () => this.validateAndFetchModels('google'));
+
+        // Temperature slider update
+        this.temperatureInput.addEventListener('input', (e) => {
+            this.temperatureValue.textContent = e.target.value;
+        });
 
         // Load API keys from environment and localStorage
         await this.loadApiKeysFromEnvironment();
@@ -234,6 +243,12 @@ export class SettingsPanel {
 
         // Load streaming preference
         this.streamingEnabledCheckbox.checked = Storage.getStreamingEnabled();
+
+        // Load model parameters
+        const params = Storage.getModelParams();
+        this.temperatureInput.value = params.temperature;
+        this.temperatureValue.textContent = params.temperature;
+        this.maxTokensInput.value = params.maxTokens;
     }
 
     save() {
@@ -248,6 +263,12 @@ export class SettingsPanel {
 
         // Save streaming preference
         Storage.setStreamingEnabled(this.streamingEnabledCheckbox.checked);
+
+        // Save model parameters
+        Storage.setModelParams({
+            temperature: parseFloat(this.temperatureInput.value),
+            maxTokens: parseInt(this.maxTokensInput.value)
+        });
 
         // Save enabled models
         const checkboxes = this.modelCheckboxesContainer.querySelectorAll('input[type="checkbox"]:checked');

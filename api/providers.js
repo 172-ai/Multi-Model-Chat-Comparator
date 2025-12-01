@@ -12,7 +12,7 @@ export class APIProvider {
         throw new Error('listModels must be implemented by subclass');
     }
 
-    async makeRequest(modelId, prompt, onChunk = null) {
+    async makeRequest(modelId, prompt, options = {}, onChunk = null) {
         throw new Error('makeRequest must be implemented by subclass');
     }
 }
@@ -63,9 +63,12 @@ export class OpenAIProvider extends APIProvider {
         return 8192;
     }
 
-    async makeRequest(modelId, prompt, onChunk = null) {
+    async makeRequest(modelId, prompt, options = {}, onChunk = null) {
         const tracker = Metrics.createPerformanceTracker();
         const pricing = getModelPricing(modelId);
+
+        const temperature = options.temperature !== undefined ? options.temperature : DEFAULT_PARAMS.temperature;
+        const maxTokens = options.maxTokens !== undefined ? options.maxTokens : DEFAULT_PARAMS.max_tokens;
 
         try {
             const response = await fetch(`${API_ENDPOINTS.openai}/chat/completions`, {
@@ -77,8 +80,8 @@ export class OpenAIProvider extends APIProvider {
                 body: JSON.stringify({
                     model: modelId,
                     messages: [{ role: 'user', content: prompt }],
-                    temperature: DEFAULT_PARAMS.temperature,
-                    max_tokens: DEFAULT_PARAMS.max_tokens,
+                    temperature: temperature,
+                    max_tokens: maxTokens,
                     stream: onChunk ? true : false
                 })
             });
@@ -231,9 +234,12 @@ export class AnthropicProvider extends APIProvider {
         ];
     }
 
-    async makeRequest(modelId, prompt, onChunk = null) {
+    async makeRequest(modelId, prompt, options = {}, onChunk = null) {
         const tracker = Metrics.createPerformanceTracker();
         const pricing = getModelPricing(modelId);
+
+        const temperature = options.temperature !== undefined ? options.temperature : DEFAULT_PARAMS.temperature;
+        const maxTokens = options.maxTokens !== undefined ? options.maxTokens : DEFAULT_PARAMS.max_tokens;
 
         console.log('='.repeat(80));
         console.log(`[ANTHROPIC REQUEST] Model: ${modelId}, Streaming: ${!!onChunk}`);
@@ -250,8 +256,8 @@ export class AnthropicProvider extends APIProvider {
                 body: JSON.stringify({
                     model: modelId,
                     messages: [{ role: 'user', content: prompt }],
-                    temperature: DEFAULT_PARAMS.temperature,
-                    max_tokens: DEFAULT_PARAMS.max_tokens,
+                    temperature: temperature,
+                    max_tokens: maxTokens,
                     stream: onChunk ? true : false
                 })
             });
@@ -633,9 +639,12 @@ export class GoogleProvider extends APIProvider {
         }
     }
 
-    async makeRequest(modelId, prompt, onChunk = null) {
+    async makeRequest(modelId, prompt, options = {}, onChunk = null) {
         const tracker = Metrics.createPerformanceTracker();
         const pricing = getModelPricing(modelId);
+
+        const temperature = options.temperature !== undefined ? options.temperature : DEFAULT_PARAMS.temperature;
+        const maxTokens = options.maxTokens !== undefined ? options.maxTokens : DEFAULT_PARAMS.max_tokens;
 
         try {
             const endpoint = onChunk
@@ -653,8 +662,8 @@ export class GoogleProvider extends APIProvider {
                         parts: [{ text: prompt }]
                     }],
                     generationConfig: {
-                        temperature: DEFAULT_PARAMS.temperature,
-                        maxOutputTokens: DEFAULT_PARAMS.max_tokens
+                        temperature: temperature,
+                        maxOutputTokens: maxTokens
                     }
                 })
             });
@@ -835,7 +844,7 @@ export class ProviderFactory {
         }
     }
 
-    static async executeRequest(modelConfig, prompt, apiKey, onChunk = null) {
+    static async executeRequest(modelConfig, prompt, apiKey, options = {}, onChunk = null) {
         const tracker = Metrics.createPerformanceTracker();
 
         if (!apiKey) {
@@ -851,7 +860,7 @@ export class ProviderFactory {
 
         try {
             const provider = this.createProvider(modelConfig.provider, apiKey);
-            const result = await provider.makeRequest(modelConfig.id, prompt, onChunk);
+            const result = await provider.makeRequest(modelConfig.id, prompt, options, onChunk);
 
             return {
                 model: modelConfig.name,
