@@ -37,22 +37,15 @@ export const PRICING_FALLBACKS = {
   'gemini-pro': { input: 0.0005, output: 0.0015 }
 };
 
-// Get pricing for a model (fallback to generic pricing if not found)
+// Get pricing information for a model
+// Returns null if pricing not available (graceful handling for new/unknown models)
 export function getModelPricing(modelId) {
-  // Check exact match first
-  if (PRICING_FALLBACKS[modelId]) {
-    return PRICING_FALLBACKS[modelId];
+  return pricing;
+}
   }
 
-  // Check for partial matches (e.g., "gpt-4-turbo-2024-04-09" matches "gpt-4-turbo")
-  for (const [key, pricing] of Object.entries(PRICING_FALLBACKS)) {
-    if (modelId.startsWith(key)) {
-      return pricing;
-    }
-  }
-
-  // Generic fallback pricing
-  return { input: 0.001, output: 0.002 };
+// Generic fallback pricing
+return { input: 0.001, output: 0.002 };
 }
 
 // Streaming configuration

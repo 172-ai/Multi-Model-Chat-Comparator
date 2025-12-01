@@ -14,7 +14,7 @@ export class Metrics {
     // Calculate cost based on token usage and pricing
     // pricing should be an object with { input: number, output: number } per 1K tokens
     static calculateCost(pricing, inputTokens, outputTokens) {
-        if (!pricing) return 0;
+        if (!pricing) return null;
 
         const inputCost = (inputTokens / 1000) * pricing.input;
         const outputCost = (outputTokens / 1000) * pricing.output;
@@ -24,6 +24,7 @@ export class Metrics {
 
     // Format cost for display
     static formatCost(cost) {
+        if (cost === null || cost === undefined) return 'N/A';
         if (cost === 0) return '$0.0000';
         if (cost < 0.0001) {
             // For very small costs, show more decimal places

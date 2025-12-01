@@ -573,7 +573,9 @@ export class AnthropicProvider extends APIProvider {
 export class GoogleProvider extends APIProvider {
     async listModels() {
         try {
+            // Fetch models from Google API via proxy
             const response = await fetch(`${API_ENDPOINTS.google}/models`, {
+                method: 'GET',
                 headers: { 'x-api-key': this.apiKey }
             });
 
@@ -583,25 +585,51 @@ export class GoogleProvider extends APIProvider {
 
             const data = await response.json();
 
-            // Filter for models that support generateContent
-            const chatModels = data.models
+            // Filter for models that support generateContent and are Gemini models
+            const chatModels = (data.models || [])
                 .filter(model =>
                     model.supportedGenerationMethods?.includes('generateContent') &&
-                    (model.name.includes('gemini'))
+                    model.name.includes('gemini')
                 )
-                .map(model => ({
-                    id: model.name.replace('models/', ''),
-                    name: model.name.replace('models/', ''),
-                    provider: 'google',
-                    contextWindow: model.inputTokenLimit || 32000,
-                    capabilities: model.supportedGenerationMethods || ['generateContent']
-                }))
+                .map(model => {
+                    const id = model.name.replace('models/', '');
+                    return {
+                        id: id,
+                        name: model.displayName || id,
+                        provider: 'google',
+                        contextWindow: model.inputTokenLimit || 32000,
+                        capabilities: model.supportedGenerationMethods || ['generateContent']
+                    };
+                })
                 .sort((a, b) => b.id.localeCompare(a.id));
 
             return chatModels;
         } catch (error) {
-            const errorInfo = ErrorHandler.parseError(error, 'google', null);
-            throw new Error(errorInfo.message);
+            console.error('Error listing Google models:', error);
+            // Fallback to known models if API fails (e.g. no key yet)
+            return [
+                {
+                    id: 'gemini-1.5-pro-latest',
+                    name: 'Gemini 1.5 Pro',
+                    provider: 'google',
+                    contextWindow: 1048576,
+                    capabilities: ['generateContent']
+                },
+                {
+                    id: 'gemini-1.5-flash-latest',
+                    name: 'Gemini 1.5 Flash',
+                    provider: 'google',
+                    contextWindow: 1048576,
+                    capabilities: ['generateContent']
+                },
+                {
+                    id: 'gemini-pro',
+                    name: 'Gemini Pro',
+                    provider: 'google',
+                    contextWindow: 30720,
+                    capabilities: ['generateContent']
+                }
+            ];
         }
     }
 

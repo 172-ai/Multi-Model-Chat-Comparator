@@ -173,14 +173,28 @@ export class ModelCard {
 
       latencyEl.textContent = Metrics.formatLatency(result.latency);
       tokensEl.textContent = Metrics.formatTokens(result.totalTokens);
-      costEl.textContent = Metrics.formatCost(result.estimatedCost);
+
+      const costFormatted = Metrics.formatCost(result.estimatedCost);
+      if (costFormatted === 'N/A') {
+        costEl.parentElement.style.display = 'none';
+      } else {
+        costEl.parentElement.style.display = 'flex';
+        costEl.textContent = costFormatted;
+      }
     } else {
       this.element.classList.add('success');
       responseDiv.textContent = result.text || this.streamedText;
 
       latencyEl.textContent = Metrics.formatLatency(result.latency);
       tokensEl.textContent = Metrics.formatTokens(result.totalTokens);
-      costEl.textContent = Metrics.formatCost(result.estimatedCost);
+
+      const costFormatted = Metrics.formatCost(result.estimatedCost);
+      if (costFormatted === 'N/A') {
+        costEl.parentElement.style.display = 'none';
+      } else {
+        costEl.parentElement.style.display = 'flex';
+        costEl.textContent = costFormatted;
+      }
     }
   }
 
