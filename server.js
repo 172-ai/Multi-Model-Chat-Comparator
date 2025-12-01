@@ -23,6 +23,25 @@ app.get('/api/env', (req, res) => {
     });
 });
 
+// OpenAI proxy - GET for listing models
+app.get('/api/proxy/openai/models', async (req, res) => {
+    const apiKey = req.headers['x-api-key'];
+    if (!apiKey) return res.status(401).json({ error: { message: 'API key required' } });
+
+    try {
+        const response = await fetch('https://api.openai.com/v1/models', {
+            method: 'GET',
+            headers: { 'Authorization': `Bearer ${apiKey}` }
+        });
+
+        const data = await response.json();
+        res.status(response.status).json(data);
+    } catch (error) {
+        res.status(500).json({ error: { message: error.message } });
+    }
+});
+
+// OpenAI proxy - POST for chat completions
 app.post('/api/proxy/openai/*', async (req, res) => {
     const path = req.params[0];
     const apiKey = req.headers['x-api-key'];
@@ -57,6 +76,22 @@ app.post('/api/proxy/openai/*', async (req, res) => {
     }
 });
 
+// Anthropic proxy - GET for listing models (not officially supported, return empty)
+app.get('/api/proxy/anthropic/models', async (req, res) => {
+    // Anthropic doesn't have a public models list endpoint
+    // Return a predefined list of known models
+    res.json({
+        data: [
+            { id: 'claude-3-5-sonnet-20241022', type: 'model' },
+            { id: 'claude-3-5-sonnet-20240620', type: 'model' },
+            { id: 'claude-3-opus-20240229', type: 'model' },
+            { id: 'claude-3-sonnet-20240229', type: 'model' },
+            { id: 'claude-3-haiku-20240307', type: 'model' }
+        ]
+    });
+});
+
+// Anthropic proxy - POST for messages
 app.post('/api/proxy/anthropic/*', async (req, res) => {
     const path = req.params[0];
     const apiKey = req.headers['x-api-key'];
@@ -101,13 +136,30 @@ app.post('/api/proxy/anthropic/*', async (req, res) => {
     }
 });
 
-app.all('/api/proxy/google/*', async (req, res) => {
+// Google proxy - GET for listing models
+app.get('/api/proxy/google/models', async (req, res) => {
+    const apiKey = req.headers['x-api-key'];
+    if (!apiKey) return res.status(401).json({ error: { message: 'API key required' } });
+
+    try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`, {
+            method: 'GET'
+        });
+
+        const data = await response.json();
+        res.status(response.status).json(data);
+    } catch (error) {
+        res.status(500).json({ error: { message: error.message } });
+    }
+});
+
+// Google proxy - POST for content generation
+app.post('/api/proxy/google/*', async (req, res) => {
     const path = req.params[0];
     const apiKey = req.headers['x-api-key'] || req.query.key;
     if (!apiKey) return res.status(401).json({ error: { message: 'API key required' } });
 
     try {
-        const url = `https://generativelanguage.googleapis.com/v1beta/${path}${req.method === 'GET' ? `?key=${apiKey}` : ''}`;
         const response = await fetch(url, {
             method: req.method,
             headers: { 'Content-Type': 'application/json' },
