@@ -77,7 +77,7 @@ export class ErrorHandler {
             type = 'overloaded';
             message = 'Service overloaded';
             suggestion = 'Anthropic\'s servers are currently busy. Please try again in a moment.';
-        } else if (message.includes('model')) {
+        } else if (message.includes('model_not_found') || message.includes('model does not exist') || message.includes('invalid model')) {
             type = 'model_not_found';
             message = 'Model not available';
             suggestion = 'This model may not be available. Try refreshing the model list in settings.';
