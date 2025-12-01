@@ -488,7 +488,12 @@ export class AnthropicProvider extends APIProvider {
 
             // Check for empty response (truly empty, not just short) - streaming mode
             // Note: Short responses like "4" or "Yes" are valid and should not be flagged
-            if (!fullText || fullText.trim() === '') {
+            // Only flag as empty if we have BOTH empty text AND a problematic stop_reason
+            // This prevents false positives for short but valid responses
+            const hasEmptyText = !fullText || fullText.trim() === '';
+            const hasProblematicStopReason = stopReason === 'end_turn' || stopReason === 'max_tokens' || stopReason === 'stop_sequence';
+
+            if (hasEmptyText && hasProblematicStopReason) {
                 let errorMsg = 'Empty Response from Claude';
                 let suggestion = 'Claude returned no meaningful content. ';
 
@@ -523,22 +528,6 @@ export class AnthropicProvider extends APIProvider {
                     suggestion = `The model encountered a predefined stop sequence.
 
 **Technical Details**: stop_reason="${stopReason}"`;
-                } else {
-                    errorMsg = 'Unexpected Empty Response';
-                    suggestion = `Claude returned an empty response without a clear reason.
-
-**Possible Causes**:
-• API service overload (HTTP 529 - try again later)
-• Network timeout or connection issue
-• Model-specific intermittent behavior
-
-**Recommended Actions**:
-1. Retry the request after a few seconds
-2. Check Anthropic's status page for service issues
-3. Try a different model
-4. Simplify your prompt
-
-**Technical Details**: stop_reason="${stopReason || 'null'}", output_tokens=${outputTokens}, response_length=${fullText.length}, streaming=true`;
                 }
 
                 return {
