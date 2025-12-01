@@ -294,8 +294,9 @@ export class AnthropicProvider extends APIProvider {
             const usage = data.usage;
             const stopReason = data.stop_reason;
 
-            // Check for empty or very short response (likely safety filter or refusal)
-            if (!completion || completion.trim() === '' || (completion.trim().length < 10 && usage.output_tokens <= 5)) {
+            // Check for empty response (truly empty, not just short)
+            // Note: Short responses like "4" or "Yes" are valid and should not be flagged
+            if (!completion || completion.trim() === '') {
                 let errorMsg = 'Empty Response from Claude';
                 let suggestion = 'Claude returned no meaningful content. ';
 
