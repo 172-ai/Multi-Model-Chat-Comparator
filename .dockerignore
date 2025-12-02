@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+
+# Environment files (should be provided at runtime)
+.env
+.env.local
+.env.*.local
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+README.md
+SETUP.md
+docs/
+
+# Tests
+tests/
+*.test.js
+*.spec.js
+
+# Development files
+.vscode/
+.idea/
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose.yml
+
+# CI/CD
+.github/
+.gitlab-ci.yml

@@ -62,6 +62,66 @@ Then navigate to `http://localhost:8000` (or the appropriate port).
 
 Your settings will be saved in your browser's localStorage.
 
+## 🐳 Docker Deployment
+
+### Quick Start with Docker
+
+The easiest way to run the application is using Docker:
+
+**Using Docker Compose (Recommended):**
+
+```bash
+# Build and start the container
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop the container
+docker-compose down
+```
+
+**Using Docker directly:**
+
+```bash
+# Build the image
+docker build -t multi-model-chat-comparator .
+
+# Run the container with environment variables
+docker run -d \
+  -p 3000:3000 \
+  -e OPENAI_API_KEY=your-key-here \
+  -e ANTHROPIC_API_KEY=your-key-here \
+  -e INFERENCE_TOKEN=your-key-here \
+  --name llm-comparator \
+  multi-model-chat-comparator
+```
+
+### Environment Variables for Docker
+
+You can provide API keys in three ways:
+
+1. **Inline** (as shown above)
+2. **Environment file**: Create a `.env` file based on `.env.example`
+3. **Via Settings UI**: Configure keys after starting the container
+
+Example `.env` file for docker-compose:
+
+```env
+OPENAI_API_KEY=sk-your-openai-key
+ANTHROPIC_API_KEY=sk-ant-your-anthropic-key
+INFERENCE_TOKEN=your-google-api-key
+```
+
+Then run: `docker-compose --env-file .env up -d`
+
+### Accessing the Application
+
+Once running, navigate to:
+
+- **Local**: <http://localhost:3000>
+- **Network**: http://YOUR_SERVER_IP:3000
+
 ## 📖 Usage
 
 1. **Enter a Prompt**: Type your question or prompt in the text area
