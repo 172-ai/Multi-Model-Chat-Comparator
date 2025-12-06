@@ -132,9 +132,11 @@ app.post('/api/proxy/anthropic/*', async (req, res) => {
             const data = await response.json();
             res.status(response.status).json(data);
         }
-    } catch (streamError) {
-        Logger.error('API', 'Stream interrupted', streamError);
-    });
+    } catch (error) {
+        Logger.error('API', 'Anthropic proxy error', error);
+        res.status(500).json({ error: { message: error.message } });
+    }
+});
 
 // Google proxy - GET for listing models
 app.get('/api/proxy/google/models', async (req, res) => {
