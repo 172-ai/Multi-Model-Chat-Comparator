@@ -196,15 +196,15 @@ app.post('/api/proxy/google/*', async (req, res) => {
     }
 });
 
-// API 404 Handler - Must be before status(200) catch-all
+app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// API 404 Handler - Must be AFTER all valid API routes
 // This ensures API requests to unknown endpoints return JSON, not HTML
 app.all('/api/*', (req, res) => {
     Logger.warn('API', `404 Not Found: ${req.method} ${req.url}`);
     res.status(404).json({ error: { message: 'API endpoint not found' } });
-});
-
-app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
 app.get('/', (req, res) => {
