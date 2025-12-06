@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { Logger } from './utils/logger.js';
 
 dotenv.config();
 
@@ -16,6 +17,7 @@ app.use(express.json());
 app.use(express.static(__dirname));
 
 app.get('/api/env', (req, res) => {
+    Logger.info('API', 'Fetching environment config');
     res.json({
         openai: process.env.OPENAI_API_KEY || null,
         anthropic: process.env.ANTHROPIC_API_KEY || null,
@@ -130,11 +132,9 @@ app.post('/api/proxy/anthropic/*', async (req, res) => {
             const data = await response.json();
             res.status(response.status).json(data);
         }
-    } catch (error) {
-        console.error('Proxy error:', error);
-        res.status(500).json({ error: { message: error.message } });
-    }
-});
+    } catch (streamError) {
+        Logger.error('API', 'Stream interrupted', streamError);
+    });
 
 // Google proxy - GET for listing models
 app.get('/api/proxy/google/models', async (req, res) => {
@@ -162,7 +162,7 @@ app.post('/api/proxy/google/*', async (req, res) => {
     try {
         // Google requires API key as query parameter, not in body
         const url = `https://generativelanguage.googleapis.com/v1beta/${path}?key=${apiKey}`;
-        console.log('[GOOGLE REQUEST]:', url);
+        Logger.info('API', `Google request to ${path}`);
 
         const response = await fetch(url, {
             method: req.method,
@@ -170,7 +170,7 @@ app.post('/api/proxy/google/*', async (req, res) => {
             body: req.method !== 'GET' ? JSON.stringify(req.body) : undefined
         });
 
-        console.log('[GOOGLE RESPONSE]:', response.status);
+        Logger.info('API', `Google response status: ${response.status}`);
 
         if (path.includes('streamGenerateContent')) {
             res.setHeader('Content-Type', 'text/event-stream');
@@ -186,13 +186,19 @@ app.post('/api/proxy/google/*', async (req, res) => {
             res.end();
         } else {
             const data = await response.json();
-            console.log('[GOOGLE DATA]:', JSON.stringify(data, null, 2).substring(0, 500));
             res.status(response.status).json(data);
         }
     } catch (error) {
-        console.error('[GOOGLE ERROR]:', error);
+        Logger.error('API', 'Google proxy error', error);
         res.status(500).json({ error: { message: error.message } });
     }
+});
+
+// API 404 Handler - Must be before status(200) catch-all
+// This ensures API requests to unknown endpoints return JSON, not HTML
+app.all('/api/*', (req, res) => {
+    Logger.warn('API', `404 Not Found: ${req.method} ${req.url}`);
+    res.status(404).json({ error: { message: 'API endpoint not found' } });
 });
 
 app.get('/api/health', (req, res) => {
@@ -204,7 +210,14 @@ app.get('/', (req, res) => {
 });
 
 app.listen(PORT, () => {
+    Logger.info('SYSTEM', `Server running on http://localhost:${PORT}`);
+    Logger.info('SYSTEM', 'Environment Config', {
+        openai: !!process.env.OPENAI_API_KEY,
+        anthropic: !!process.env.ANTHROPIC_API_KEY,
+        google: !!process.env.INFERENCE_TOKEN
+    });
     console.log(`🚀 Multi-Model Chat Comparator server running on http://localhost:${PORT}`);
+    // Keep visible console logs for local dev convenience
     console.log(`📝 Environment variables loaded:`);
     console.log(`   - OpenAI API Key: ${process.env.OPENAI_API_KEY ? '✓ Set' : '✗ Not set'}`);
     console.log(`   - Anthropic API Key: ${process.env.ANTHROPIC_API_KEY ? '✓ Set' : '✗ Not set'}`);
