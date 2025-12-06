@@ -67,7 +67,19 @@ class App {
         const enabledModelIds = this.settingsPanel.getEnabledModels();
 
         if (enabledModelIds.length === 0) {
-            this.modelsGrid.innerHTML = '<p class="no-models-message">Select models in settings to get started</p>';
+            this.modelsGrid.innerHTML = `
+                <div class="no-models-message">
+                    <p>No models selected</p>
+                    <button id="selectModelsBtn" class="primary-btn">Select Models</button>
+                    <p class="sub-text">Configure API keys and models in settings to get started</p>
+                </div>
+            `;
+
+            // Add listener to the dynamic button
+            const btn = document.getElementById('selectModelsBtn');
+            if (btn) {
+                btn.addEventListener('click', () => this.settingsPanel.open());
+            }
             return;
         }
 

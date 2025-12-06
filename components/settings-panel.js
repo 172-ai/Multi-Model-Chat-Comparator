@@ -111,6 +111,13 @@ export class SettingsPanel {
             if (models && models.length > 0) {
                 this.availableModels[provider] = models;
                 this.setValidationState(input, 'valid');
+
+                // If no models are selected, auto-select defaults for this provider
+                const currentSelected = Storage.getEnabledModels() || [];
+                if (currentSelected.length === 0) {
+                    this.selectDefaultModels(provider);
+                }
+
                 this.updateModelCheckboxes();
             } else {
                 this.setValidationState(input, 'invalid');
@@ -118,6 +125,52 @@ export class SettingsPanel {
         } catch (error) {
             console.error(`Error fetching ${provider} models:`, error);
             this.setValidationState(input, 'invalid');
+        }
+    }
+
+    selectDefaultModels(specificProvider = null) {
+        let currentSelected = Storage.getEnabledModels() || [];
+        // Double check in case we already have selections
+        if (currentSelected.length > 0) return;
+
+        const providers = specificProvider ? [specificProvider] : ['openai', 'anthropic', 'google'];
+        const newSelections = [];
+
+        // Preferred models in priority order
+        const defaults = {
+            openai: ['gpt-4-turbo', 'gpt-4o', 'gpt-4'],
+            anthropic: ['claude-3-5-sonnet-latest', 'claude-3-5-sonnet-20241022', 'claude-3-opus-latest'],
+            google: ['gemini-1.5-pro', 'gemini-1.5-pro-latest', 'gemini-1.5-flash']
+        };
+
+        providers.forEach(provider => {
+            const models = this.availableModels[provider] || [];
+            if (models.length === 0) return;
+
+            // Try to find a preferred model
+            let selected = null;
+            for (const pref of defaults[provider]) {
+                const found = models.find(m => m.id === pref || m.id.includes(pref));
+                if (found) {
+                    selected = found.id;
+                    break;
+                }
+            }
+
+            // Fallback: pick the first available if no preference match
+            if (!selected && models.length > 0) {
+                selected = models[0].id;
+            }
+
+            if (selected) {
+                newSelections.push(selected);
+            }
+        });
+
+        if (newSelections.length > 0) {
+            Storage.setEnabledModels(newSelections);
+            // We need to re-render checkboxes to reflect this new state immediately
+            // But validation method calls updateModelCheckboxes right after this return
         }
     }
 
@@ -168,6 +221,44 @@ export class SettingsPanel {
         }
 
         await Promise.all(promises);
+
+        // After fetching all, if we still have no selections, try to select defaults
+        const currentSelected = Storage.getEnabledModels() || [];
+        if (currentSelected.length === 0) {
+            this.selectDefaultModels();
+            // Force save to persist these defaults immediately
+            Storage.setEnabledModels(this.selectDefaultModelsInternal());
+        }
+    }
+
+    // Helper to get default selections without side effects
+    selectDefaultModelsInternal() {
+        const selections = [];
+        const defaults = {
+            openai: ['gpt-4-turbo', 'gpt-4o', 'gpt-4'],
+            anthropic: ['claude-3-5-sonnet-latest', 'claude-3-opus-latest'],
+            google: ['gemini-1.5-pro', 'gemini-1.5-flash']
+        };
+
+        ['openai', 'anthropic', 'google'].forEach(p => {
+            const models = this.availableModels[p] || [];
+            for (const pref of defaults[p]) {
+                const found = models.find(m => m.id === pref || m.id.includes(pref));
+                if (found) {
+                    selections.push(found.id);
+                    break;
+                }
+            }
+            // Fallback
+            if (selections.filter(id => this.isProviderModel(id, p)).length === 0 && models.length > 0) {
+                selections.push(models[0].id);
+            }
+        });
+        return selections;
+    }
+
+    isProviderModel(modelId, provider) {
+        return this.availableModels[provider]?.some(m => m.id === modelId);
     }
 
     updateModelCheckboxes() {
