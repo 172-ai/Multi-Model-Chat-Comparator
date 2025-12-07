@@ -184,6 +184,25 @@ export class OpenAIProvider extends APIProvider {
                 }
             }
 
+            // Process any remaining buffer content
+            if (buffer && buffer.trim()) {
+                const lines = buffer.split('\n');
+                for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                        const data = line.slice(6);
+                        if (data === '[DONE]') continue;
+                        try {
+                            const parsed = JSON.parse(data);
+                            const content = parsed.choices[0]?.delta?.content;
+                            if (content) {
+                                fullText += content;
+                                onChunk(content);
+                            }
+                        } catch (e) { /* ignore */ }
+                    }
+                }
+            }
+
             const latency = tracker.stop();
             const inputTokens = Metrics.estimateTokenCount(prompt);
             const outputTokens = Metrics.estimateTokenCount(fullText);
@@ -477,6 +496,29 @@ export class AnthropicProvider extends APIProvider {
                         } catch (e) {
                             // Skip invalid JSON
                         }
+                    }
+                }
+            }
+
+            // Process any remaining buffer content
+            if (buffer && buffer.trim()) {
+                const lines = buffer.split('\n');
+                for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                        const data = line.slice(6);
+                        try {
+                            const parsed = JSON.parse(data);
+                            if (parsed.type === 'content_block_delta') {
+                                const content = parsed.delta?.text;
+                                if (content) {
+                                    fullText += content;
+                                    onChunk(content);
+                                }
+                            } else if (parsed.type === 'message_delta') {
+                                outputTokens = parsed.usage?.output_tokens || outputTokens;
+                                stopReason = parsed.delta?.stop_reason || stopReason;
+                            }
+                        } catch (e) { /* ignore */ }
                     }
                 }
             }
@@ -780,6 +822,29 @@ export class GoogleProvider extends APIProvider {
                         } catch (e) {
                             // Skip invalid JSON
                         }
+                    }
+                }
+            }
+
+            // Process any remaining buffer content
+            if (buffer && buffer.trim()) {
+                const lines = buffer.split('\n');
+                for (const line of lines) {
+                    if (line.trim()) {
+                        try {
+                            const parsed = JSON.parse(line);
+                            if (parsed.candidates && parsed.candidates[0]?.content?.parts) {
+                                const content = parsed.candidates[0].content.parts[0]?.text;
+                                if (content) {
+                                    fullText += content;
+                                    onChunk(content);
+                                }
+                            }
+                            if (parsed.usageMetadata) {
+                                inputTokens = parsed.usageMetadata.promptTokenCount || inputTokens;
+                                outputTokens = parsed.usageMetadata.candidatesTokenCount || outputTokens;
+                            }
+                        } catch (e) { /* ignore */ }
                     }
                 }
             }
