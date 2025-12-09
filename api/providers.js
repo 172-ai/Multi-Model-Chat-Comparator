@@ -679,14 +679,14 @@ export class GoogleProvider extends APIProvider {
             // Fallback to known models if API fails (e.g. no key yet)
             return [
                 {
-                    id: 'gemini-1.5-pro-latest',
+                    id: 'gemini-1.5-pro',
                     name: 'Gemini 1.5 Pro',
                     provider: 'google',
                     contextWindow: 1048576,
                     capabilities: ['generateContent']
                 },
                 {
-                    id: 'gemini-1.5-flash-latest',
+                    id: 'gemini-1.5-flash',
                     name: 'Gemini 1.5 Flash',
                     provider: 'google',
                     contextWindow: 1048576,

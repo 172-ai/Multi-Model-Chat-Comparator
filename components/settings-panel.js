@@ -140,7 +140,7 @@ export class SettingsPanel {
         const defaults = {
             openai: ['gpt-4-turbo', 'gpt-4o', 'gpt-4'],
             anthropic: ['claude-3-5-sonnet-20241022', 'claude-3-opus-20240229'],
-            google: ['gemini-1.5-pro', 'gemini-1.5-pro-latest', 'gemini-1.5-flash']
+            google: ['gemini-1.5-pro', 'gemini-1.5-flash', 'gemini-pro']
         };
 
         providers.forEach(provider => {
