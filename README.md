@@ -8,19 +8,25 @@ A modern web application that allows you to submit a single prompt and compare r
 
 - **Multi-Model Comparison**: Submit one prompt and get responses from multiple AI models simultaneously
 - **Supported Providers**:
-  - OpenAI (GPT-4 Turbo, GPT-4, GPT-3.5 Turbo)
+  - OpenAI (GPT-4 Turbo, GPT-4o, GPT-3.5 Turbo, and more)
   - Anthropic (Claude 3.5 Sonnet, Claude 3 Opus, Claude 3 Haiku)
-  - Google (Gemini 1.5 Pro, Gemini 1.5 Flash)
+  - Google (Gemini 1.5 Pro, Gemini 1.5 Flash, Gemini Pro)
+- **Dynamic Model Discovery**: Models are fetched from each provider's API automatically
+- **Dynamic Pricing**: Cost estimates fetched from OpenRouter API (cached 24h)
 - **Real-Time Metrics**:
   - Response latency tracking
   - Token usage (input/output/total)
-  - Estimated cost per request
+  - Estimated cost per request (real-time pricing)
   - Model context window information
+- **Configurable Parameters**:
+  - Temperature (0-1)
+  - Max Tokens
 - **Modern UI**:
   - Dark theme with glassmorphism effects
   - Synchronized card layout
   - Smooth animations and transitions
   - Responsive design
+  - Auto-selection of default models
 - **Export Functionality**: Download complete comparison data as JSON
 - **Persistent Settings**: API keys and model preferences saved locally
 
@@ -134,20 +140,13 @@ Once running, navigate to:
 - `Ctrl/Cmd + Enter`: Submit prompt
 - `Esc`: Close settings panel
 
-## 💰 Cost Considerations
+## 💰 Cost Estimation
 
-**Important**: Each prompt submission triggers API calls to all selected models simultaneously. This can result in costs across multiple providers. Current pricing (as of implementation):
+**Important**: Each prompt submission triggers API calls to all selected models simultaneously. This can result in costs across multiple providers.
 
-| Model | Input (per 1K tokens) | Output (per 1K tokens) |
-|-------|----------------------|------------------------|
-| GPT-4 Turbo | $0.01 | $0.03 |
-| GPT-4 | $0.03 | $0.06 |
-| GPT-3.5 Turbo | $0.0005 | $0.0015 |
-| Claude 3.5 Sonnet | $0.003 | $0.015 |
-| Claude 3 Opus | $0.015 | $0.075 |
-| Claude 3 Haiku | $0.00025 | $0.00125 |
-| Gemini 1.5 Pro | $0.00125 | $0.005 |
-| Gemini 1.5 Flash | $0.000075 | $0.0003 |
+### Dynamic Pricing (NEW!)
+
+Pricing is now fetched automatically from [OpenRouter API](https://openrouter.ai/api/v1/models) and cached for 24 hours. This ensures you always see up-to-date cost estimates for all models, including newly released ones.
 
 The app displays estimated costs for each response to help you track usage.
 
@@ -199,18 +198,19 @@ Example export structure:
 ## 🔒 Security & Privacy
 
 - **API Keys**: Stored locally in your browser's localStorage
-- **No Backend**: All API calls are made directly from your browser
-- **No Data Collection**: Your prompts and responses are never sent to any third-party servers
-- **Client-Side Only**: Everything runs in your browser
-
-⚠️ **Note**: For production use, consider implementing a backend proxy to secure API keys and add rate limiting.
+- **Backend Proxy**: All API calls routed through Node.js server to secure keys
+- **No Data Collection**: Your prompts and responses are never sent to any third-party servers (except the LLM providers)
+- **Structured Logging**: Cloud-ready JSON logging for production environments
 
 ## 🛠️ Technical Details
 
 ### Architecture
 
-- **Pure JavaScript**: No build process required, uses ES6 modules
+- **Node.js Backend**: Express server with API proxy for secure key management
+- **ES6 Modules**: Modern JavaScript with no build process required
 - **Modular Design**: Separate components for UI, API providers, and utilities
+- **Dynamic Discovery**: Models fetched from provider APIs
+- **Dynamic Pricing**: Cost data from OpenRouter API with 24h caching
 - **Responsive**: Works on desktop and mobile devices
 - **Modern CSS**: Custom properties, glassmorphism, animations
 
