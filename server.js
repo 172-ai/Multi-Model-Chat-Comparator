@@ -78,19 +78,37 @@ app.post('/api/proxy/openai/*', async (req, res) => {
     }
 });
 
-// Anthropic proxy - GET for listing models (not officially supported, return empty)
+// Anthropic proxy - GET for listing models
 app.get('/api/proxy/anthropic/models', async (req, res) => {
-    // Anthropic doesn't have a public models list endpoint
-    // Return a predefined list of known models
-    res.json({
-        data: [
-            { id: 'claude-3-5-sonnet-20241022', type: 'model' },
-            { id: 'claude-3-5-sonnet-20240620', type: 'model' },
-            { id: 'claude-3-opus-20240229', type: 'model' },
-            { id: 'claude-3-sonnet-20240229', type: 'model' },
-            { id: 'claude-3-haiku-20240307', type: 'model' }
-        ]
-    });
+    const apiKey = req.headers['x-api-key'];
+    if (!apiKey) return res.status(401).json({ error: { message: 'API key required' } });
+
+    try {
+        const response = await fetch('https://api.anthropic.com/v1/models', {
+            headers: {
+                'x-api-key': apiKey,
+                'anthropic-version': '2023-06-01'
+            }
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ error: { message: `HTTP ${response.status}` } }));
+            return res.status(response.status).json(errorData);
+        }
+
+        const data = await response.json();
+        res.json(data);
+    } catch (error) {
+        Logger.error('API', 'Anthropic models error', error);
+        // Fallback to known models if API fails
+        res.json({
+            data: [
+                { id: 'claude-3-5-sonnet-20241022', type: 'model', display_name: 'Claude 3.5 Sonnet (v2)' },
+                { id: 'claude-3-opus-20240229', type: 'model', display_name: 'Claude 3 Opus' },
+                { id: 'claude-3-haiku-20240307', type: 'model', display_name: 'Claude 3 Haiku' }
+            ]
+        });
+    }
 });
 
 // Anthropic proxy - POST for messages

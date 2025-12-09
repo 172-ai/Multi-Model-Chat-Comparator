@@ -232,31 +232,60 @@ export class OpenAIProvider extends APIProvider {
 // Anthropic Provider
 export class AnthropicProvider extends APIProvider {
     async listModels() {
-        // Anthropic doesn't provide a models list endpoint, so we return known models
-        // Updated to remove specific version IDs that might be restricted/deprecated
-        return [
-            {
-                id: 'claude-3-5-sonnet-20241022',
-                name: 'Claude 3.5 Sonnet (v2)',
-                provider: 'anthropic',
-                contextWindow: 200000,
-                capabilities: ['chat', 'streaming']
-            },
-            {
-                id: 'claude-3-opus-20240229',
-                name: 'Claude 3 Opus',
-                provider: 'anthropic',
-                contextWindow: 200000,
-                capabilities: ['chat', 'streaming']
-            },
-            {
-                id: 'claude-3-haiku-20240307',
-                name: 'Claude 3 Haiku',
-                provider: 'anthropic',
-                contextWindow: 200000,
-                capabilities: ['chat', 'streaming']
+        try {
+            // Anthropic now provides a models list endpoint
+            const response = await fetch(`${API_ENDPOINTS.anthropic}/models`, {
+                headers: {
+                    'x-api-key': this.apiKey
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
             }
-        ];
+
+            const data = await response.json();
+
+            // Filter for chat-capable models and map to standard format
+            const chatModels = (data.data || [])
+                .filter(model => model.type === 'model')
+                .map(model => ({
+                    id: model.id,
+                    name: model.display_name || model.id,
+                    provider: 'anthropic',
+                    contextWindow: 200000, // Default context window
+                    capabilities: ['chat', 'streaming']
+                }))
+                .sort((a, b) => b.id.localeCompare(a.id)); // Newest first
+
+            return chatModels;
+        } catch (error) {
+            console.error('Error listing Anthropic models:', error);
+            // Fallback to known models if API fails
+            return [
+                {
+                    id: 'claude-3-5-sonnet-20241022',
+                    name: 'Claude 3.5 Sonnet (v2)',
+                    provider: 'anthropic',
+                    contextWindow: 200000,
+                    capabilities: ['chat', 'streaming']
+                },
+                {
+                    id: 'claude-3-opus-20240229',
+                    name: 'Claude 3 Opus',
+                    provider: 'anthropic',
+                    contextWindow: 200000,
+                    capabilities: ['chat', 'streaming']
+                },
+                {
+                    id: 'claude-3-haiku-20240307',
+                    name: 'Claude 3 Haiku',
+                    provider: 'anthropic',
+                    contextWindow: 200000,
+                    capabilities: ['chat', 'streaming']
+                }
+            ];
+        }
     }
 
     async makeRequest(modelId, prompt, options = {}, onChunk = null) {
