@@ -107,6 +107,12 @@ app.post('/api/proxy/anthropic/*', async (req, res) => {
             body: JSON.stringify(req.body)
         });
 
+        // Check for error response before streaming
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ error: { message: `HTTP ${response.status}` } }));
+            return res.status(response.status).json(errorData);
+        }
+
         if (req.body?.stream) {
             res.setHeader('Content-Type', 'text/event-stream');
             res.setHeader('Cache-Control', 'no-cache');
@@ -173,6 +179,12 @@ app.post('/api/proxy/google/*', async (req, res) => {
         });
 
         Logger.info('API', `Google response status: ${response.status}`);
+
+        // Check for error response before streaming
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ error: { message: `HTTP ${response.status}` } }));
+            return res.status(response.status).json(errorData);
+        }
 
         if (path.includes('streamGenerateContent')) {
             res.setHeader('Content-Type', 'text/event-stream');
