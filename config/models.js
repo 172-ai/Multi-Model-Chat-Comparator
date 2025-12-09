@@ -37,7 +37,23 @@ export const PRICING_FALLBACKS = {
   'gemini-pro': { input: 0.0005, output: 0.0015 }
 };
 
-// Get pricing information for a model
+// Import the pricing service for dynamic pricing
+import { pricingService } from '../api/pricing-service.js';
+
+// Get pricing information for a model (async version with OpenRouter API)
+// Returns pricing from OpenRouter API with fallback to hardcoded values
+export async function getModelPricingAsync(modelId) {
+  // Try to get pricing from OpenRouter API first
+  const dynamicPricing = await pricingService.getPricing(modelId);
+  if (dynamicPricing) {
+    return dynamicPricing;
+  }
+
+  // Fall back to hardcoded pricing
+  return getModelPricing(modelId);
+}
+
+// Get pricing information for a model (sync version - uses fallbacks only)
 // Returns null if pricing not available (graceful handling for new/unknown models)
 export function getModelPricing(modelId) {
   // Check exact match first

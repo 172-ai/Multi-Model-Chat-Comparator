@@ -1,5 +1,5 @@
 // API provider integrations with streaming and dynamic model discovery
-import { API_ENDPOINTS, getModelPricing, DEFAULT_PARAMS, STREAMING_CONFIG } from '../config/models.js';
+import { API_ENDPOINTS, getModelPricing, getModelPricingAsync, DEFAULT_PARAMS, STREAMING_CONFIG } from '../config/models.js';
 import { Metrics } from './metrics.js';
 import { ErrorHandler } from '../utils/error-handler.js';
 
@@ -65,7 +65,7 @@ export class OpenAIProvider extends APIProvider {
 
     async makeRequest(modelId, prompt, options = {}, onChunk = null) {
         const tracker = Metrics.createPerformanceTracker();
-        const pricing = getModelPricing(modelId);
+        const pricing = await getModelPricingAsync(modelId);
 
         const temperature = options.temperature !== undefined ? options.temperature : DEFAULT_PARAMS.temperature;
         const maxTokens = options.maxTokens !== undefined ? options.maxTokens : DEFAULT_PARAMS.max_tokens;
@@ -290,7 +290,7 @@ export class AnthropicProvider extends APIProvider {
 
     async makeRequest(modelId, prompt, options = {}, onChunk = null) {
         const tracker = Metrics.createPerformanceTracker();
-        const pricing = getModelPricing(modelId);
+        const pricing = await getModelPricingAsync(modelId);
 
         const temperature = options.temperature !== undefined ? options.temperature : DEFAULT_PARAMS.temperature;
         const maxTokens = options.maxTokens !== undefined ? options.maxTokens : DEFAULT_PARAMS.max_tokens;
@@ -705,7 +705,7 @@ export class GoogleProvider extends APIProvider {
 
     async makeRequest(modelId, prompt, options = {}, onChunk = null) {
         const tracker = Metrics.createPerformanceTracker();
-        const pricing = getModelPricing(modelId);
+        const pricing = await getModelPricingAsync(modelId);
 
         const temperature = options.temperature !== undefined ? options.temperature : DEFAULT_PARAMS.temperature;
         const maxTokens = options.maxTokens !== undefined ? options.maxTokens : DEFAULT_PARAMS.max_tokens;
