@@ -236,15 +236,15 @@ export class AnthropicProvider extends APIProvider {
         // Updated to remove specific version IDs that might be restricted/deprecated
         return [
             {
-                id: 'claude-3-5-sonnet-latest',
-                name: 'Claude 3.5 Sonnet (Latest)',
+                id: 'claude-3-5-sonnet-20241022',
+                name: 'Claude 3.5 Sonnet (v2)',
                 provider: 'anthropic',
                 contextWindow: 200000,
                 capabilities: ['chat', 'streaming']
             },
             {
-                id: 'claude-3-opus-latest',
-                name: 'Claude 3 Opus (Latest)',
+                id: 'claude-3-opus-20240229',
+                name: 'Claude 3 Opus',
                 provider: 'anthropic',
                 contextWindow: 200000,
                 capabilities: ['chat', 'streaming']
