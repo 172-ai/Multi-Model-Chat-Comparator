@@ -6,7 +6,9 @@
     "type": "module",
     "scripts": {
         "start": "node server.js",
-        "dev": "node server.js"
+        "dev": "node server.js",
+        "qa:validate": "node qa-sidecar/validate-chain.js",
+        "qa:server": "node qa-sidecar/main.js"
     },
     "keywords": [
         "llm",
