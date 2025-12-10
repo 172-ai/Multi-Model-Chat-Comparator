@@ -238,6 +238,8 @@ app.post('/api/proxy/google/*', async (req, res) => {
         // Check for error response before streaming
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({ error: { message: `HTTP ${response.status}` } }));
+            // Always log Google errors for debugging
+            Logger.error('API', `Google error response: ${JSON.stringify(errorData)}`);
             return res.status(response.status).json(errorData);
         }
 
