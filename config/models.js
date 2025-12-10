@@ -30,11 +30,11 @@ export const PRICING_FALLBACKS = {
   'claude-3-haiku-20240307': { input: 0.00025, output: 0.00125 },
 
   // Google
-  'gemini-1.5-pro': { input: 0.00125, output: 0.005 },
-  'gemini-1.5-pro-latest': { input: 0.00125, output: 0.005 },
-  'gemini-1.5-flash': { input: 0.000075, output: 0.0003 },
-  'gemini-1.5-flash-latest': { input: 0.000075, output: 0.0003 },
-  'gemini-pro': { input: 0.0005, output: 0.0015 }
+  'gemini-2.5-pro': { input: 0.00125, output: 0.005 },
+  'gemini-2.5-flash': { input: 0.000075, output: 0.0003 },
+  'gemini-2.0-flash': { input: 0.0001, output: 0.0001 }, // Approximate / Free tier often applies
+  'gemini-flash-latest': { input: 0.000075, output: 0.0003 },
+  'gemini-pro-latest': { input: 0.0005, output: 0.0015 }
 };
 
 // Import the pricing service for dynamic pricing

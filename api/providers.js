@@ -684,26 +684,34 @@ export class GoogleProvider extends APIProvider {
         } catch (error) {
             console.error('Error listing Google models:', error);
             // Fallback to known models if API fails (e.g. no key yet)
+            // Updated Dec 2025: Google deprecated 1.5 models, now using 2.0/2.5
             return [
                 {
-                    id: 'gemini-1.5-pro',
-                    name: 'Gemini 1.5 Pro',
+                    id: 'gemini-2.5-flash',
+                    name: 'Gemini 2.5 Flash',
                     provider: 'google',
                     contextWindow: 1048576,
                     capabilities: ['generateContent']
                 },
                 {
-                    id: 'gemini-1.5-flash',
-                    name: 'Gemini 1.5 Flash',
+                    id: 'gemini-2.5-pro',
+                    name: 'Gemini 2.5 Pro',
                     provider: 'google',
                     contextWindow: 1048576,
                     capabilities: ['generateContent']
                 },
                 {
-                    id: 'gemini-pro',
-                    name: 'Gemini Pro',
+                    id: 'gemini-2.0-flash',
+                    name: 'Gemini 2.0 Flash',
                     provider: 'google',
-                    contextWindow: 30720,
+                    contextWindow: 1048576,
+                    capabilities: ['generateContent']
+                },
+                {
+                    id: 'gemini-flash-latest',
+                    name: 'Gemini Flash Latest',
+                    provider: 'google',
+                    contextWindow: 1048576,
                     capabilities: ['generateContent']
                 }
             ];
