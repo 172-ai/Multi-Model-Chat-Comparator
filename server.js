@@ -49,6 +49,11 @@ app.post('/api/proxy/openai/*', async (req, res) => {
     const apiKey = req.headers['x-api-key'];
     if (!apiKey) return res.status(401).json({ error: { message: 'API key required' } });
 
+    // DEBUG: Log full request
+    if (process.env.DEBUG) {
+        Logger.info('DEBUG', `OpenAI Request: ${path}`, { body: req.body });
+    }
+
     try {
         const url = `https://api.openai.com/v1/${path}`;
         const response = await fetch(url, {
@@ -63,17 +68,35 @@ app.post('/api/proxy/openai/*', async (req, res) => {
             res.setHeader('Connection', 'keep-alive');
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
+            let streamedData = '';
             while (true) {
                 const { done, value } = await reader.read();
                 if (done) break;
-                res.write(decoder.decode(value, { stream: true }));
+                const chunk = decoder.decode(value, { stream: true });
+                streamedData += chunk;
+                res.write(chunk);
             }
             res.end();
+            // DEBUG: Log streamed response
+            if (process.env.DEBUG) {
+                Logger.info('DEBUG', `OpenAI Streamed Response: ${path}`, {
+                    status: response.status,
+                    dataLength: streamedData.length
+                });
+            }
         } else {
             const data = await response.json();
+            // DEBUG: Log full response
+            if (process.env.DEBUG) {
+                Logger.info('DEBUG', `OpenAI Response: ${path}`, {
+                    status: response.status,
+                    data: data
+                });
+            }
             res.status(response.status).json(data);
         }
     } catch (error) {
+        Logger.error('API', 'OpenAI proxy error', error);
         res.status(500).json({ error: { message: error.message } });
     }
 });
@@ -117,6 +140,11 @@ app.post('/api/proxy/anthropic/*', async (req, res) => {
     const apiKey = req.headers['x-api-key'];
     if (!apiKey) return res.status(401).json({ error: { message: 'API key required' } });
 
+    // DEBUG: Log full request
+    if (process.env.DEBUG) {
+        Logger.info('DEBUG', `Anthropic Request: ${path}`, { body: req.body });
+    }
+
     try {
         const url = `https://api.anthropic.com/v1/${path}`;
         const response = await fetch(url, {
@@ -154,6 +182,10 @@ app.post('/api/proxy/anthropic/*', async (req, res) => {
             }
         } else {
             const data = await response.json();
+            // DEBUG: Log full response
+            if (process.env.DEBUG) {
+                Logger.info('DEBUG', `Anthropic Response: ${path}`, { status: response.status, data: data });
+            }
             res.status(response.status).json(data);
         }
     } catch (error) {
@@ -184,6 +216,11 @@ app.post('/api/proxy/google/*', async (req, res) => {
     const path = req.params[0];
     const apiKey = req.headers['x-api-key'] || req.query.key;
     if (!apiKey) return res.status(401).json({ error: { message: 'API key required' } });
+
+    // DEBUG: Log full request
+    if (process.env.DEBUG) {
+        Logger.info('DEBUG', `Google Request: ${path}`, { body: req.body });
+    }
 
     try {
         // Google requires API key as query parameter, not in body
@@ -218,6 +255,10 @@ app.post('/api/proxy/google/*', async (req, res) => {
             res.end();
         } else {
             const data = await response.json();
+            // DEBUG: Log full response
+            if (process.env.DEBUG) {
+                Logger.info('DEBUG', `Google Response: ${path}`, { status: response.status, data: data });
+            }
             res.status(response.status).json(data);
         }
     } catch (error) {

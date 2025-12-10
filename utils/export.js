@@ -26,7 +26,11 @@ export class Exporter {
                 warningType: response.warningType || null,
                 // Include diagnostic information
                 stopReason: response.stopReason || null,
-                finishReason: response.finishReason || null
+                finishReason: response.finishReason || null,
+                // Debug: Raw API request/response for troubleshooting
+                rawApiRequest: response.rawApiRequest || null,
+                rawApiResponse: response.rawApiResponse || null,
+                debugInfo: response.debugInfo || null
             })),
             summary: {
                 totalModels: data.responses.length,

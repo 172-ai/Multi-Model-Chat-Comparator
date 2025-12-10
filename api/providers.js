@@ -70,6 +70,15 @@ export class OpenAIProvider extends APIProvider {
         const temperature = options.temperature !== undefined ? options.temperature : DEFAULT_PARAMS.temperature;
         const maxTokens = options.maxTokens !== undefined ? options.maxTokens : DEFAULT_PARAMS.max_tokens;
 
+        // Store request for debugging
+        const requestBody = {
+            model: modelId,
+            messages: [{ role: 'user', content: prompt }],
+            temperature: temperature,
+            max_tokens: maxTokens,
+            stream: onChunk ? true : false
+        };
+
         try {
             const response = await fetch(`${API_ENDPOINTS.openai}/chat/completions`, {
                 method: 'POST',
@@ -77,13 +86,7 @@ export class OpenAIProvider extends APIProvider {
                     'Content-Type': 'application/json',
                     'x-api-key': this.apiKey
                 },
-                body: JSON.stringify({
-                    model: modelId,
-                    messages: [{ role: 'user', content: prompt }],
-                    temperature: temperature,
-                    max_tokens: maxTokens,
-                    stream: onChunk ? true : false
-                })
+                body: JSON.stringify(requestBody)
             });
 
             if (!response.ok) {
@@ -93,7 +96,7 @@ export class OpenAIProvider extends APIProvider {
 
             // Handle streaming response
             if (onChunk && response.body) {
-                return await this.handleStreamingResponse(response, tracker, pricing, modelId, onChunk);
+                return await this.handleStreamingResponse(response, tracker, pricing, modelId, onChunk, requestBody);
             }
 
             // Handle non-streaming response
@@ -126,7 +129,9 @@ export class OpenAIProvider extends APIProvider {
                     warning: errorMsg,
                     warningSuggestion: suggestion,
                     warningType: 'empty_response',
-                    finishReason: finishReason
+                    finishReason: finishReason,
+                    rawApiRequest: requestBody,
+                    rawApiResponse: data
                 };
             }
 
@@ -137,7 +142,9 @@ export class OpenAIProvider extends APIProvider {
                 outputTokens: usage.completion_tokens,
                 totalTokens: usage.total_tokens,
                 estimatedCost: Metrics.calculateCost(pricing, usage.prompt_tokens, usage.completion_tokens),
-                finishReason: finishReason
+                finishReason: finishReason,
+                rawApiRequest: requestBody,
+                rawApiResponse: data
             };
         } catch (error) {
             const errorInfo = ErrorHandler.parseError(error, 'openai', modelId);
