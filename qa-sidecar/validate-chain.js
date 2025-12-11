@@ -13,13 +13,13 @@ async function runValidationChain() {
 
     // Step 1: Initialize Session
     console.log('1. [initialize_qa_session] Setting up Local environment...');
-    // Use real keys from .env if available
+    // Use real keys from .env if available, fallback to mock
     const initResult = await initialize_qa_session.handler({
         environment: 'local',
         keys: {
-            openai: process.env.OPENAI_API_KEY,
-            anthropic: process.env.ANTHROPIC_API_KEY,
-            google: process.env.INFERENCE_TOKEN
+            openai: process.env.OPENAI_API_KEY || 'sk-test-key-mock',
+            anthropic: process.env.ANTHROPIC_API_KEY || 'sk-ant-test-mock',
+            google: process.env.INFERENCE_TOKEN || 'test-token'
         }
     });
     console.log('   Result:', JSON.parse(initResult.content[0].text).sessionId ? '✅ Session Created' : '❌ Failed');
@@ -32,7 +32,6 @@ async function runValidationChain() {
 
     // Step 3: Logic Verification (Pricing)
     console.log('\n3. [verify_pricing_accuracy] Testing Logic Import...');
-    // Note: Model ID must exist in caching service logic or fallback
     const pricingResult = await verify_pricing_accuracy.handler({
         modelId: 'gpt-4',
         inputTokens: 1000,
@@ -48,14 +47,16 @@ async function runValidationChain() {
     console.log('   Valid:', exportData.valid ? '✅ Schema Valid' : '❌ Schema Invalid');
 
     // Step 5: Discovery (Network + Keys)
-    console.log('\n5. [discover_provider_models] Testing Proxy Connectivity (Real Authorization)...');
+    console.log('\n5. [discover_provider_models] Testing Proxy Connectivity...');
     const discResult = await discover_provider_models.handler({ provider: 'openai' });
     const discData = JSON.parse(discResult.content[0].text);
 
     if (discData.status === 'error') {
         console.log('   ❌ Discovery Failed:', discData.error);
         if (discData.error.includes('401')) {
-            console.log('      (Hint: Check your .env API keys)');
+            console.log('      (Hint: API Key rejected by provider. Check .env)');
+        } else if (discData.error.includes('No API key')) {
+            console.log('      (Hint: .env file not loaded or key missing)');
         }
     } else {
         console.log(`   ✅ Discovery Successful! Found ${discData.model_count} OpenAI models.`);
