@@ -1,0 +1,33 @@
+# Dockerfile.qa
+# Unified Container for 172.ai Deployment (Web App + QA Sidecar)
+
+FROM node:20-alpine
+
+WORKDIR /app
+
+# 1. Install Root Dependencies (Web App)
+COPY package.json package-lock.json ./
+RUN npm ci --only=production
+
+# 2. Install Sidecar Dependencies
+# Create directory first
+RUN mkdir -p qa-sidecar
+COPY qa-sidecar/package.json qa-sidecar/package-lock.json ./qa-sidecar/
+# Install sidecar deps
+RUN cd qa-sidecar && npm ci --only=production
+
+# 3. Copy Application Code
+COPY . .
+
+# 4. Make startup script executable
+RUN chmod +x scripts/start-unified.sh
+
+# 5. Environment Configuration
+ENV NODE_ENV=production
+ENV PORT=3000
+
+# 6. Expose Web App Port
+EXPOSE 3000
+
+# 7. Start Unified Script
+CMD ["./scripts/start-unified.sh"]

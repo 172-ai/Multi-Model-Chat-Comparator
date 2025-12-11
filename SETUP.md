@@ -72,3 +72,30 @@ The server will start on `http://localhost:3000`
 - **API Key Validation**: Visual feedback when API keys are valid/invalid
 - **Environment Variable Support**: Auto-load API keys from .env file
 - **Only Selected Models**: Main screen shows only the models you've selected
+
+## Unified QA Deployment (172.ai)
+
+To deploy the application with the QA Sidecar enabled in a single container (or process):
+
+### Option A: Run Locally (No Docker)
+
+This runs both the Web App (background) and QA Sidecar (foreground) on your machine.
+
+```bash
+./scripts/start-unified.sh
+```
+
+* **Web App**: `http://localhost:3000`
+- **Qa Sidecar**: Hooks into your terminal's stdio (for MCP clients).
+
+### Option B: Run via Docker (Unified Container)
+
+This builds and runs the unified container locally for testing.
+
+```bash
+# Build
+docker build -f Dockerfile.qa -t qa-sidecar-unified .
+
+# Run
+docker run -p 3000:3000 qa-sidecar-unified
+```
