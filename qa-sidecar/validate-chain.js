@@ -4,6 +4,7 @@ dotenv.config();
 
 import { initialize_qa_session } from './journeys/setup.js';
 import { check_system_health } from './journeys/health.js';
+import { run_comparison_test } from './journeys/execution.js';
 import { discover_provider_models } from './journeys/discovery.js';
 import { verify_pricing_accuracy, audit_export_format } from './journeys/validation.js';
 import { context } from './context.js';
@@ -58,8 +59,9 @@ async function runValidationChain() {
     if (availableProviders.length === 0) {
         console.log('   ⚠️ No API Keys found in .env. Falling back to Mock Key test for OpenAI only.');
         availableProviders.push('openai');
-        // Note: The previous logic already injected mock keys into the context for this specific run.
     }
+
+    const discoveredModels = {};
 
     for (const provider of availableProviders) {
         process.stdout.write(`   👉 Checking ${provider}... `);
@@ -75,14 +77,26 @@ async function runValidationChain() {
         } else {
             // Success!
             let modelCount = discData.model_count;
-            if (!modelCount && discData.raw_response_snippet) {
-                // Try to infer from raw snippet if count logic failed
-                const raw = discData.raw_response_snippet;
-                if (Array.isArray(raw)) modelCount = raw.length;
-                else if (raw.data && Array.isArray(raw.data)) modelCount = raw.data.length;
-                else if (raw.models && Array.isArray(raw.models)) modelCount = raw.models.length;
+            let firstModelId = null;
+
+            const raw = discData.raw_response_snippet;
+
+            if (provider === 'google' && raw.models && raw.models.length > 0) {
+                // Google returns "models/name", strip prefix
+                firstModelId = raw.models[0].name.replace('models/', '');
+                // Try to find flash if possible
+                const flash = raw.models.find(m => m.name.includes('flash'));
+                if (flash) firstModelId = flash.name.replace('models/', '');
+            } else if (provider === 'openai' && raw.data && raw.data.length > 0) {
+                firstModelId = raw.data[0].id;
+                const turbo = raw.data.find(m => m.id.includes('gpt-3.5'));
+                if (turbo) firstModelId = turbo.id;
+            } else if (provider === 'anthropic' && Array.isArray(raw)) {
+                if (raw.length > 0) firstModelId = raw[0].id;
             }
-            console.log(`✅ Success! Found ${modelCount || '?'} models.`);
+
+            if (firstModelId) discoveredModels[provider] = firstModelId;
+            console.log(`✅ Success! Found ${modelCount || '?'} models. (Sample: ${firstModelId})`);
         }
     }
 
@@ -91,6 +105,60 @@ async function runValidationChain() {
     const missing = allProviders.filter(p => !availableProviders.includes(p));
     if (missing.length > 0) {
         console.log(`   ℹ️ Skipped: ${missing.join(', ')} (No API Key in .env)`);
+    }
+
+    // Step 6: Functional Testing (Stream vs Non-Stream)
+    console.log('\n6. [run_comparison_test] Functional Testing (Stream vs Non-Stream)...');
+
+    // Pick a model based on what we discovered
+    let testModel = null;
+    let testProvider = null;
+
+    if (discoveredModels.google) { testModel = discoveredModels.google; testProvider = 'google'; }
+    else if (discoveredModels.openai) { testModel = discoveredModels.openai; testProvider = 'openai'; }
+    else if (discoveredModels.anthropic) { testModel = discoveredModels.anthropic; testProvider = 'anthropic'; }
+
+    if (testModel) {
+        console.log(`   👉 Target Model: ${testModel} (${testProvider})`);
+        const prompt = "How many planets are in Solar System? Answer with just the number.";
+
+        // A. Non-Streaming
+        process.stdout.write('   a) Non-Streaming... ');
+        const resNonStream = await run_comparison_test.handler({
+            models: [testModel],
+            prompt: prompt,
+            stream: false
+        });
+        const jsonNonStream = JSON.parse(resNonStream.content[0].text);
+        const r1 = jsonNonStream.results[0];
+        if (r1.status === 'success') {
+            console.log(`✅ Success (${r1.latency_ms}ms)`);
+            console.log(`      Response: "${r1.snippet}"`);
+        } else {
+            console.log(`❌ Failed: ${r1.error}`);
+        }
+
+        // B. Streaming
+        process.stdout.write('   b) Streaming...     ');
+        const resStream = await run_comparison_test.handler({
+            models: [testModel],
+            prompt: prompt,
+            stream: true
+        });
+        const jsonStream = JSON.parse(resStream.content[0].text);
+        const r2 = jsonStream.results[0];
+        if (r2.status === 'success') {
+            console.log(`✅ Success (TTFT: ${r2.ttft_ms}ms, Total: ${r2.latency_ms}ms)`);
+            console.log(`      Response: "${r2.snippet}"`);
+            if (!r2.ttft_ms && testProvider === 'google') {
+                console.log(`      (Note: TTFT may be null if Google Proxy buffers chunks)`);
+            }
+        } else {
+            console.log(`❌ Failed: ${r2.error}`);
+        }
+
+    } else {
+        console.log('   ⚠️ Skipping Functional Test (No working provider found)');
     }
 
     console.log('\n✨ Validation Chain Complete! Ready for Deployment?');
