@@ -13,7 +13,13 @@ export const discover_provider_models = {
 
         if (!apiKey) {
             return {
-                content: [{ type: 'text', text: `Error: No API key configured for ${args.provider}. Use initialize_qa_session first.` }],
+                content: [{
+                    type: 'text',
+                    text: JSON.stringify({
+                        status: 'error',
+                        error: `No API key configured for ${args.provider}. Use initialize_qa_session first.`
+                    }, null, 2)
+                }],
                 isError: true
             };
         }
