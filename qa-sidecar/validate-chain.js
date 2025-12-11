@@ -46,23 +46,54 @@ async function runValidationChain() {
     const exportData = JSON.parse(exportResult.content[0].text);
     console.log('   Valid:', exportData.valid ? '✅ Schema Valid' : '❌ Schema Invalid');
 
-    // Step 5: Discovery (Network + Keys)
+    // Step 5: Discovery (Network + Keys) for ALL providers
     console.log('\n5. [discover_provider_models] Testing Proxy Connectivity...');
-    const discResult = await discover_provider_models.handler({ provider: 'openai' });
-    const discData = JSON.parse(discResult.content[0].text);
 
-    if (discData.status === 'error') {
-        console.log('   ❌ Discovery Failed:', discData.error);
-        if (discData.error.includes('401')) {
-            console.log('      (Hint: API Key rejected by provider. Check .env)');
-        } else if (discData.error.includes('No API key')) {
-            console.log('      (Hint: .env file not loaded or key missing)');
-        }
-    } else {
-        console.log(`   ✅ Discovery Successful! Found ${discData.model_count} OpenAI models.`);
+    // Check which keys are available (using the same logic as context.js would)
+    const availableProviders = [];
+    if (process.env.OPENAI_API_KEY) availableProviders.push('openai');
+    if (process.env.ANTHROPIC_API_KEY) availableProviders.push('anthropic');
+    if (process.env.INFERENCE_TOKEN) availableProviders.push('google');
+
+    if (availableProviders.length === 0) {
+        console.log('   ⚠️ No API Keys found in .env. Falling back to Mock Key test for OpenAI only.');
+        availableProviders.push('openai');
+        // Note: The previous logic already injected mock keys into the context for this specific run.
     }
 
-    console.log('\n✨ Validation Chain Complete!');
+    for (const provider of availableProviders) {
+        process.stdout.write(`   👉 Checking ${provider}... `);
+        const discResult = await discover_provider_models.handler({ provider });
+        const discData = JSON.parse(discResult.content[0].text);
+
+        if (discData.status === 'error') {
+            if (discData.error.includes('401') || discData.error.includes('403')) {
+                console.log(`❌ Auth Failed (401/403). Key exists but was rejected.`);
+            } else {
+                console.log(`❌ Error: ${discData.error}`);
+            }
+        } else {
+            // Success!
+            let modelCount = discData.model_count;
+            if (!modelCount && discData.raw_response_snippet) {
+                // Try to infer from raw snippet if count logic failed
+                const raw = discData.raw_response_snippet;
+                if (Array.isArray(raw)) modelCount = raw.length;
+                else if (raw.data && Array.isArray(raw.data)) modelCount = raw.data.length;
+                else if (raw.models && Array.isArray(raw.models)) modelCount = raw.models.length;
+            }
+            console.log(`✅ Success! Found ${modelCount || '?'} models.`);
+        }
+    }
+
+    // Report on missing providers
+    const allProviders = ['openai', 'anthropic', 'google'];
+    const missing = allProviders.filter(p => !availableProviders.includes(p));
+    if (missing.length > 0) {
+        console.log(`   ℹ️ Skipped: ${missing.join(', ')} (No API Key in .env)`);
+    }
+
+    console.log('\n✨ Validation Chain Complete! Ready for Deployment?');
 }
 
 runValidationChain().catch(console.error);
