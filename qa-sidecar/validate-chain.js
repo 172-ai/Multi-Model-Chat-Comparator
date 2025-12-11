@@ -1,3 +1,6 @@
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 import { initialize_qa_session } from './journeys/setup.js';
 import { check_system_health } from './journeys/health.js';
@@ -10,9 +13,14 @@ async function runValidationChain() {
 
     // Step 1: Initialize Session
     console.log('1. [initialize_qa_session] Setting up Local environment...');
+    // Use real keys from .env if available
     const initResult = await initialize_qa_session.handler({
         environment: 'local',
-        keys: { openai: 'sk-test-key-mock' } // Mock key for safety
+        keys: {
+            openai: process.env.OPENAI_API_KEY,
+            anthropic: process.env.ANTHROPIC_API_KEY,
+            google: process.env.INFERENCE_TOKEN
+        }
     });
     console.log('   Result:', JSON.parse(initResult.content[0].text).sessionId ? '✅ Session Created' : '❌ Failed');
 
@@ -40,23 +48,17 @@ async function runValidationChain() {
     console.log('   Valid:', exportData.valid ? '✅ Schema Valid' : '❌ Schema Invalid');
 
     // Step 5: Discovery (Network + Keys)
-    // This might fail if localhost:3000 is checking real keys against OpenAI.
-    // Our proxy checks "if (!apiKey) 401". It passes the key to OpenAI. OpenAI will return 401 for 'sk-test-key-mock'.
-    // This PROVES the sidecar is hitting the proxy correctly.
-    console.log('\n5. [discover_provider_models] Testing Proxy Connectivity...');
+    console.log('\n5. [discover_provider_models] Testing Proxy Connectivity (Real Authorization)...');
     const discResult = await discover_provider_models.handler({ provider: 'openai' });
-    const discData = JSON.parse(discResult.content[0].text); // Might contain error
+    const discData = JSON.parse(discResult.content[0].text);
 
     if (discData.status === 'error') {
-        console.log('   Note: Discovery returned error (Expected with mock key):', discData.error);
-        // If error is HTTP 401, that implies connectivity to proxy worked!
+        console.log('   ❌ Discovery Failed:', discData.error);
         if (discData.error.includes('401')) {
-            console.log('   ✅ Connectivity Validated (Got 401 from Upstream via Proxy)');
-        } else {
-            console.log('   ⚠️ Connectivity Uncertain:', discData.error);
+            console.log('      (Hint: Check your .env API keys)');
         }
     } else {
-        console.log('   ✅ Discovery Successful (Real Key used?)');
+        console.log(`   ✅ Discovery Successful! Found ${discData.model_count} OpenAI models.`);
     }
 
     console.log('\n✨ Validation Chain Complete!');
