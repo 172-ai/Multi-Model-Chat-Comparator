@@ -748,8 +748,20 @@ export class GoogleProvider extends APIProvider {
             });
 
             if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.error?.message || `HTTP ${response.status}`);
+                let errorMessage = `HTTP ${response.status}`;
+                try {
+                    const error = await response.json();
+                    if (error && error.error && error.error.message) {
+                        errorMessage = error.error.message;
+                    } else if (error && error.message) {
+                        errorMessage = error.message;
+                    } else if (error) {
+                        errorMessage = JSON.stringify(error);
+                    }
+                } catch (e) {
+                    // ignore json parse error, use default message
+                }
+                throw new Error(errorMessage);
             }
 
             // Handle streaming response
@@ -851,7 +863,7 @@ export class GoogleProvider extends APIProvider {
                         try {
                             const parsed = JSON.parse(line);
 
-                            if (parsed.candidates && parsed.candidates[0]?.content?.parts) {
+                            if (parsed && parsed.candidates && parsed.candidates[0]?.content?.parts) {
                                 const content = parsed.candidates[0].content.parts[0]?.text;
                                 if (content) {
                                     fullText += content;
