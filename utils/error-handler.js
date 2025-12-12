@@ -32,7 +32,8 @@ export class ErrorHandler {
             type,
             provider,
             modelId,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            rawError: error.rawResponse || error // Include raw response if available
         };
     }
 

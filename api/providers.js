@@ -91,7 +91,9 @@ export class OpenAIProvider extends APIProvider {
 
             if (!response.ok) {
                 const error = await response.json();
-                throw new Error(error.error?.message || `HTTP ${response.status}`);
+                const customError = new Error(error.error?.message || `HTTP ${response.status}`);
+                customError.rawResponse = error;
+                throw customError;
             }
 
             // Handle streaming response
@@ -152,7 +154,8 @@ export class OpenAIProvider extends APIProvider {
                 error: errorInfo.message,
                 errorSuggestion: errorInfo.suggestion,
                 errorType: errorInfo.type,
-                latency: tracker.stop()
+                latency: tracker.stop(),
+                rawError: errorInfo.rawError
             };
         }
     }
@@ -329,7 +332,9 @@ export class AnthropicProvider extends APIProvider {
                 const errorBody = await response.json();
                 console.log('[ANTHROPIC ERROR RESPONSE]:', JSON.stringify(errorBody, null, 2));
                 const errorMessage = errorBody.error?.message || errorBody.message || `HTTP ${response.status}`;
-                throw new Error(errorMessage);
+                const customError = new Error(errorMessage);
+                customError.rawResponse = errorBody;
+                throw customError;
             }
 
             // Handle streaming response
@@ -486,7 +491,8 @@ export class AnthropicProvider extends APIProvider {
                 latency: tracker.stop(),
                 rawError: {
                     message: error.message,
-                    stack: error.stack
+                    stack: error.stack,
+                    ...error.rawResponse
                 }
             };
         }
@@ -749,8 +755,10 @@ export class GoogleProvider extends APIProvider {
 
             if (!response.ok) {
                 let errorMessage = `HTTP ${response.status}`;
+                let rawErrorData = null;
                 try {
                     const error = await response.json();
+                    rawErrorData = error;
                     if (error && error.error && error.error.message) {
                         errorMessage = error.error.message;
                     } else if (error && error.message) {
@@ -761,7 +769,9 @@ export class GoogleProvider extends APIProvider {
                 } catch (e) {
                     // ignore json parse error, use default message
                 }
-                throw new Error(errorMessage);
+                const customError = new Error(errorMessage);
+                customError.rawResponse = rawErrorData;
+                throw customError;
             }
 
             // Handle streaming response
