@@ -11,6 +11,7 @@ import { check_system_health } from './journeys/health.js';
 import { discover_provider_models } from './journeys/discovery.js';
 import { run_comparison_test } from './journeys/execution.js';
 import { verify_pricing_accuracy, audit_export_format } from './journeys/validation.js';
+import { validate_model_response } from './journeys/e2e.js';
 
 dotenv.config();
 
@@ -21,7 +22,8 @@ const tools = [
     discover_provider_models,
     run_comparison_test,
     verify_pricing_accuracy,
-    audit_export_format
+    audit_export_format,
+    validate_model_response
 ];
 
 const server = new Server(
