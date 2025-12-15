@@ -28,7 +28,9 @@ class QAContext {
         this.environment = environment;
         this.startTime = new Date();
 
-        if (environment === 'local') {
+        if (process.env.REMOTE_URL) {
+            this.baseUrl = process.env.REMOTE_URL;
+        } else if (environment === 'local') {
             this.baseUrl = 'http://localhost:3000';
         } else if (environment === 'staging') {
             this.baseUrl = process.env.STAGING_URL || 'http://localhost:3000';
