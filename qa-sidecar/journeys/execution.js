@@ -49,7 +49,9 @@ export const run_comparison_test = {
     }
 };
 
-function detectProvider(modelId) {
+// ... (previous code)
+
+export function detectProvider(modelId) {
     if (modelId.startsWith('gpt') || modelId.startsWith('o1-')) return 'openai';
     if (modelId.startsWith('claude')) return 'anthropic';
     if (modelId.startsWith('gemini')) return 'google';
@@ -74,8 +76,10 @@ function parseSEEChunk(chunk) {
     return results;
 }
 
-async function callProvider(provider, modelId, prompt, maxTokens, stream = false) {
+export async function callProvider(provider, modelId, prompt, maxTokens, stream = false) {
     const apiKey = context.getApiKey(provider);
+    // ... (rest of function)
+
     if (!apiKey) throw new Error(`No API key for ${provider}`);
 
     let url, body;
@@ -217,7 +221,9 @@ async function callProvider(provider, modelId, prompt, maxTokens, stream = false
         mode: stream ? 'streaming' : 'non-streaming',
         latency_ms: Math.round(latency),
         ttft_ms: timeToFirstToken ? Math.round(timeToFirstToken) : null,
+        ttft_ms: timeToFirstToken ? Math.round(timeToFirstToken) : null,
         response_length: text.length,
+        text: text,
         snippet: text.substring(0, 100) + (text.length > 100 ? '...' : ''),
         usage
     };

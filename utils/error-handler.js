@@ -1,8 +1,19 @@
 // Enhanced error handling utilities
 export class ErrorHandler {
     static parseError(error, provider, modelId) {
+        if (!error) {
+            return {
+                message: 'Unknown error occurred',
+                suggestion: 'An unexpected error occurred. Please try again.',
+                type: 'unknown',
+                provider,
+                modelId,
+                timestamp: new Date().toISOString()
+            };
+        }
+
         // Extract error message from various API response formats
-        let message = error.message || 'Unknown error occurred';
+        let message = error.message || String(error) || 'Unknown error occurred';
         let suggestion = '';
         let type = 'unknown';
 
@@ -21,7 +32,8 @@ export class ErrorHandler {
             type,
             provider,
             modelId,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            rawError: error.rawResponse || error // Include raw response if available
         };
     }
 
